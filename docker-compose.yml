@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: socialskills_db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-socialskills}
+      MYSQL_USER: ${DB_USER:-socialskills}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-socialskills123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Backend API
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: socialskills_backend
+    environment:
+      - DATABASE_URL=mysql+aiomysql://${DB_USER:-socialskills}:${DB_PASSWORD:-socialskills123}@db:3306/${DB_NAME:-socialskills}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - AI_MODULE_URL=http://ai:7860
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./Backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # AI Module with Gradio Training UI
+  ai:
+    build:
+      context: ./AI
+      dockerfile: Dockerfile
+    container_name: socialskills_ai
+    environment:
+      - DEVICE=${AI_DEVICE:-cpu}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./AI:/app
+      - ai_models:/app/models
+      - ai_data:/app/data
+    command: python training_ui.py
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Frontend (for development)
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: socialskills_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    command: npm start
+
+volumes:
+  mysql_data:
+  ai_models:
+  ai_data:
