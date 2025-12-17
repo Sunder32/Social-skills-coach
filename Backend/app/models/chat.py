@@ -35,8 +35,8 @@ class Chat(Base):
     personality_type = Column(String(50))
     scenario = Column(Text)
     
-    # Metadata
-    metadata = Column(JSON)
+    # Chat metadata
+    chat_metadata = Column(JSON)
     feedback_rating = Column(Integer)  # User feedback 1-5
     feedback_comment = Column(Text)
     

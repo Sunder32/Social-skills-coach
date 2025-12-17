@@ -8,8 +8,9 @@ import os
 import json
 import threading
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 import traceback
+import shutil
 
 # Import training components
 from config import config
@@ -18,6 +19,8 @@ from core.llm_client import LLMClient
 from training.trainer import SFTTrainer
 from training.dpo_trainer import DPOTrainer
 from training.dataset import ConversationDataset, PreferenceDataset, create_sample_data
+from training.document_loader import DocumentLoader, process_books_for_training
+from rag.retriever import RAGRetriever
 
 
 # Global state
@@ -381,6 +384,324 @@ def refresh_status():
     )
 
 
+# =========================
+# Document Training Handlers
+# =========================
+
+rag_retriever = None
+
+
+def process_documents_handler(
+    files: List,
+    chunk_size: int,
+    data_type: str
+):
+    """Process uploaded documents for training"""
+    global rag_retriever
+    
+    if not files:
+        return "Загрузите файлы!", "\n".join(training_state["logs"])
+    
+    try:
+        log_message(f"Обработка {len(files)} документов...")
+        
+        loader = DocumentLoader(chunk_size=int(chunk_size))
+        documents = []
+        
+        for file in files:
+            try:
+                text, metadata = loader.load_file(file.name)
+                if text.strip():
+                    documents.append((text, metadata))
+                    log_message(f"✓ Загружен: {metadata['filename']} ({len(text)} символов)")
+                else:
+                    log_message(f"⚠ Пустой файл: {metadata['filename']}")
+            except Exception as e:
+                log_message(f"✗ Ошибка {file.name}: {str(e)}")
+        
+        if not documents:
+            return "Не удалось загрузить ни одного документа!", "\n".join(training_state["logs"])
+        
+        # Create output directory
+        output_dir = os.path.join(config.data_dir, "documents")
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save training data
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        if data_type == "knowledge":
+            output_path = os.path.join(output_dir, f"knowledge_{timestamp}.jsonl")
+            loader.create_training_data(documents, output_path, data_type="knowledge")
+            
+            # Also add to RAG index
+            log_message("Добавление в RAG индекс...")
+            if rag_retriever is None:
+                rag_retriever = RAGRetriever()
+            
+            # Convert to RAG format
+            rag_docs = []
+            for text, metadata in documents:
+                rag_docs.append({
+                    "content": text,
+                    "title": metadata.get("filename", ""),
+                    "topic": "",
+                    "source": metadata.get("source", "")
+                })
+            
+            # Run async method
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(rag_retriever.add_documents(rag_docs))
+            
+            log_message(f"✓ Документы добавлены в RAG индекс")
+            
+        elif data_type == "sft":
+            output_path = os.path.join(output_dir, f"sft_{timestamp}.jsonl")
+            loader.create_training_data(documents, output_path, data_type="conversation")
+            
+        elif data_type == "qa":
+            output_path = os.path.join(output_dir, f"qa_{timestamp}.jsonl")
+            loader.create_training_data(documents, output_path, data_type="qa")
+        
+        log_message(f"✓ Данные сохранены: {output_path}")
+        
+        result = f"""
+✅ Обработано документов: {len(documents)}
+📁 Данные сохранены: {output_path}
+📊 Тип данных: {data_type}
+"""
+        return result, "\n".join(training_state["logs"])
+    
+    except Exception as e:
+        log_message(f"Ошибка обработки: {str(e)}")
+        log_message(traceback.format_exc())
+        return f"Ошибка: {str(e)}", "\n".join(training_state["logs"])
+
+
+def process_directory_handler(
+    dir_path: str,
+    chunk_size: int,
+    data_type: str
+):
+    """Process all documents in a directory"""
+    global rag_retriever
+    
+    if not dir_path or not os.path.exists(dir_path):
+        return "Укажите существующую директорию!", "\n".join(training_state["logs"])
+    
+    try:
+        log_message(f"Сканирование директории: {dir_path}")
+        
+        loader = DocumentLoader(chunk_size=int(chunk_size))
+        documents = loader.load_directory(dir_path)
+        
+        if not documents:
+            return "Не найдено поддерживаемых документов!", "\n".join(training_state["logs"])
+        
+        log_message(f"Найдено {len(documents)} документов")
+        
+        for text, metadata in documents:
+            log_message(f"  ✓ {metadata['filename']}")
+        
+        # Create output directory
+        output_dir = os.path.join(config.data_dir, "documents")
+        os.makedirs(output_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(output_dir, f"{data_type}_{timestamp}.jsonl")
+        
+        loader.create_training_data(documents, output_path, data_type=data_type)
+        
+        # Add to RAG if knowledge type
+        if data_type == "knowledge":
+            log_message("Добавление в RAG индекс...")
+            if rag_retriever is None:
+                rag_retriever = RAGRetriever()
+            
+            # Convert to RAG format
+            rag_docs = []
+            for text, metadata in documents:
+                rag_docs.append({
+                    "content": text,
+                    "title": metadata.get("filename", ""),
+                    "topic": "",
+                    "source": metadata.get("source", "")
+                })
+            
+            # Run async method
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(rag_retriever.add_documents(rag_docs))
+            
+            log_message("✓ Документы добавлены в RAG")
+        
+        log_message(f"✓ Обработка завершена: {output_path}")
+        
+        result = f"""
+✅ Обработано документов: {len(documents)}
+📁 Данные сохранены: {output_path}
+"""
+        return result, "\n".join(training_state["logs"])
+    
+    except Exception as e:
+        log_message(f"Ошибка: {str(e)}")
+        return f"Ошибка: {str(e)}", "\n".join(training_state["logs"])
+
+
+def train_on_documents_handler(
+    data_path: str,
+    num_epochs: int,
+    batch_size: int,
+    learning_rate: float
+):
+    """Train model on processed documents"""
+    global model, tokenizer
+    
+    if training_state["is_training"]:
+        return "Обучение уже запущено!", "\n".join(training_state["logs"]), get_model_info()
+    
+    if model is None:
+        return "Сначала загрузите модель!", "\n".join(training_state["logs"]), get_model_info()
+    
+    # Handle directory path - find latest .jsonl file
+    actual_path = data_path
+    if os.path.isdir(data_path):
+        jsonl_files = [f for f in os.listdir(data_path) if f.endswith('.jsonl')]
+        if not jsonl_files:
+            return f"В директории {data_path} нет .jsonl файлов!", "\n".join(training_state["logs"]), get_model_info()
+        # Get the most recent file
+        jsonl_files.sort(reverse=True)
+        actual_path = os.path.join(data_path, jsonl_files[0])
+        log_message(f"Выбран файл: {jsonl_files[0]}")
+    
+    if not os.path.exists(actual_path):
+        return f"Файл данных не найден: {actual_path}", "\n".join(training_state["logs"]), get_model_info()
+    
+    def train_thread():
+        try:
+            training_state["is_training"] = True
+            training_state["status"] = "Обучение на документах..."
+            log_message("Начало обучения на документах")
+            log_message(f"Файл данных: {actual_path}")
+            
+            # Create dataset
+            dataset = ConversationDataset(
+                data_path=actual_path,
+                tokenizer=tokenizer,
+                max_length=config.model.max_length
+            )
+            
+            if len(dataset) == 0:
+                log_message("Ошибка: датасет пуст!")
+                training_state["is_training"] = False
+                return
+            
+            log_message(f"Загружено {len(dataset)} примеров из документов")
+            
+            # Create trainer
+            trainer = SFTTrainer(
+                model=model,
+                tokenizer=tokenizer,
+                train_dataset=dataset,
+                output_dir=config.training.checkpoint_dir
+            )
+            
+            # Train
+            history = trainer.train(
+                num_epochs=int(num_epochs),
+                batch_size=int(batch_size),
+                learning_rate=float(learning_rate),
+                warmup_steps=50,
+                progress_callback=progress_callback
+            )
+            
+            log_message("✓ Обучение на документах завершено!")
+            log_message(f"Модель сохранена в {config.training.checkpoint_dir}")
+            
+        except Exception as e:
+            log_message(f"Ошибка обучения: {str(e)}")
+            log_message(traceback.format_exc())
+        finally:
+            training_state["is_training"] = False
+            training_state["status"] = "Готов к обучению"
+    
+    thread = threading.Thread(target=train_thread)
+    thread.start()
+    
+    return "Обучение на документах запущено!", "\n".join(training_state["logs"]), get_model_info()
+
+
+def list_document_datasets():
+    """List available document datasets"""
+    doc_dir = os.path.join(config.data_dir, "documents")
+    
+    if not os.path.exists(doc_dir):
+        return "Нет обработанных документов"
+    
+    files = [f for f in os.listdir(doc_dir) if f.endswith('.jsonl')]
+    
+    if not files:
+        return "Нет обработанных документов"
+    
+    result = "**Доступные датасеты:**\n\n"
+    for f in sorted(files, reverse=True):
+        path = os.path.join(doc_dir, f)
+        size = os.path.getsize(path)
+        # Count lines
+        with open(path, 'r', encoding='utf-8') as file:
+            lines = sum(1 for _ in file)
+        result += f"- `{f}` ({lines} примеров, {size // 1024} KB)\n"
+    
+    return result
+
+
+def search_rag_handler(query: str, top_k: int):
+    """Search in RAG knowledge base"""
+    global rag_retriever
+    
+    if rag_retriever is None:
+        try:
+            rag_retriever = RAGRetriever()
+        except:
+            return "RAG индекс не инициализирован. Сначала загрузите документы."
+    
+    try:
+        # Run async method
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        results = loop.run_until_complete(rag_retriever.search(query, top_k=int(top_k)))
+        
+        if not results:
+            return "Ничего не найдено"
+        
+        output = f"**Результаты поиска для:** {query}\n\n"
+        
+        for i, result in enumerate(results, 1):
+            content = result.get('content', result.get('text', ''))
+            score = result.get('score', 0)
+            source = result.get('title', result.get('source', 'Unknown'))
+            output += f"---\n**{i}. Score: {score:.4f}** (из {source})\n\n"
+            output += content[:500] + ("..." if len(content) > 500 else "") + "\n\n"
+        
+        return output
+    
+    except Exception as e:
+        return f"Ошибка поиска: {str(e)}"
+
+
 # Build Gradio Interface
 def create_interface():
     """Create Gradio interface"""
@@ -475,6 +796,99 @@ def create_interface():
                 train_dpo_btn = gr.Button("🚀 Начать DPO обучение", variant="primary")
                 dpo_result = gr.Textbox(label="Результат", lines=2)
             
+            # Document Training Tab
+            with gr.Tab("📚 Обучение на документах"):
+                gr.Markdown("""
+                ### Обучение модели на книгах и документах
+                
+                Поддерживаемые форматы: **PDF, DOCX, TXT, EPUB, Markdown**
+                
+                1. Загрузите документы или укажите папку
+                2. Выберите тип данных для обучения
+                3. Запустите обработку
+                4. Начните обучение на подготовленных данных
+                """)
+                
+                with gr.Tabs():
+                    with gr.Tab("📤 Загрузка файлов"):
+                        doc_files = gr.File(
+                            label="Загрузите документы",
+                            file_count="multiple",
+                            file_types=[".pdf", ".docx", ".doc", ".txt", ".epub", ".md"]
+                        )
+                        
+                        with gr.Row():
+                            doc_chunk_size = gr.Slider(
+                                200, 2000, 
+                                value=1000, 
+                                step=100, 
+                                label="Размер чанка (символов)"
+                            )
+                            doc_data_type = gr.Dropdown(
+                                choices=["knowledge", "sft", "qa"],
+                                value="knowledge",
+                                label="Тип данных",
+                                info="knowledge - для RAG, sft - для fine-tuning, qa - вопрос-ответ"
+                            )
+                        
+                        process_files_btn = gr.Button("🔄 Обработать файлы", variant="primary")
+                        doc_process_result = gr.Textbox(label="Результат обработки", lines=4)
+                    
+                    with gr.Tab("📁 Из директории"):
+                        doc_dir_path = gr.Textbox(
+                            label="Путь к папке с документами",
+                            placeholder="C:/Books/SocialSkills или ./data/books",
+                            info="Все поддерживаемые файлы будут обработаны рекурсивно"
+                        )
+                        
+                        with gr.Row():
+                            dir_chunk_size = gr.Slider(200, 2000, value=1000, step=100, label="Размер чанка")
+                            dir_data_type = gr.Dropdown(
+                                choices=["knowledge", "sft", "qa"],
+                                value="knowledge",
+                                label="Тип данных"
+                            )
+                        
+                        process_dir_btn = gr.Button("🔄 Обработать директорию", variant="primary")
+                        dir_process_result = gr.Textbox(label="Результат", lines=4)
+                
+                gr.Markdown("---")
+                gr.Markdown("### 🎓 Обучение на обработанных данных")
+                
+                with gr.Row():
+                    datasets_info = gr.Markdown(list_document_datasets())
+                    refresh_datasets_btn = gr.Button("🔄 Обновить список")
+                
+                with gr.Row():
+                    train_doc_path = gr.Textbox(
+                        label="Путь к датасету",
+                        value="./data/documents/",
+                        placeholder="Путь к JSONL файлу или директории",
+                        info="Можно указать папку - будет выбран последний файл"
+                    )
+                
+                with gr.Row():
+                    train_doc_epochs = gr.Slider(1, 10, value=3, step=1, label="Эпохи")
+                    train_doc_batch = gr.Slider(1, 16, value=4, step=1, label="Batch Size")
+                    train_doc_lr = gr.Number(value=2e-5, label="Learning Rate")
+                
+                train_doc_btn = gr.Button("🚀 Начать обучение на документах", variant="primary")
+                train_doc_result = gr.Textbox(label="Результат обучения", lines=2)
+                
+                gr.Markdown("---")
+                gr.Markdown("### 🔍 Поиск в базе знаний (RAG)")
+                
+                with gr.Row():
+                    rag_query = gr.Textbox(
+                        label="Поисковый запрос",
+                        placeholder="Как вести переговоры?",
+                        lines=1
+                    )
+                    rag_top_k = gr.Slider(1, 10, value=3, step=1, label="Количество результатов")
+                
+                search_rag_btn = gr.Button("🔎 Искать", variant="secondary")
+                rag_results = gr.Markdown(label="Результаты поиска")
+            
             # Test Tab
             with gr.Tab("🧪 Тестирование"):
                 gr.Markdown("### Проверка генерации модели")
@@ -552,6 +966,36 @@ def create_interface():
             train_dpo_handler,
             inputs=[dpo_data_path, dpo_epochs, dpo_batch, dpo_lr, dpo_beta],
             outputs=[dpo_result, logs_display, model_info]
+        )
+        
+        # Document training handlers
+        process_files_btn.click(
+            process_documents_handler,
+            inputs=[doc_files, doc_chunk_size, doc_data_type],
+            outputs=[doc_process_result, logs_display]
+        )
+        
+        process_dir_btn.click(
+            process_directory_handler,
+            inputs=[doc_dir_path, dir_chunk_size, dir_data_type],
+            outputs=[dir_process_result, logs_display]
+        )
+        
+        refresh_datasets_btn.click(
+            list_document_datasets,
+            outputs=[datasets_info]
+        )
+        
+        train_doc_btn.click(
+            train_on_documents_handler,
+            inputs=[train_doc_path, train_doc_epochs, train_doc_batch, train_doc_lr],
+            outputs=[train_doc_result, logs_display, model_info]
+        )
+        
+        search_rag_btn.click(
+            search_rag_handler,
+            inputs=[rag_query, rag_top_k],
+            outputs=[rag_results]
         )
         
         test_btn.click(

@@ -201,6 +201,28 @@ class AIService:
             top_k=limit
         )
     
+    async def generate_chat_response(
+        self,
+        history: List[Dict[str, str]],
+        context: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Generate AI response for general chat"""
+        
+        if not self._ai_available:
+            return {
+                "message": "Привет! Я - AI-помощник для развития навыков общения. К сожалению, полная функциональность AI временно недоступна. Пожалуйста, настройте API ключи в файле .env для использования всех возможностей.",
+                "analysis": None,
+                "suggestions": None
+            }
+        
+        # Generate response using LLM
+        response = await self.llm_client.generate_chat_response(
+            history=history,
+            context=context
+        )
+        
+        return response
+    
     # Fallback methods when AI is not available
     def _get_fallback_plan(self, conversation_type: str, situation: str) -> Dict:
         return {

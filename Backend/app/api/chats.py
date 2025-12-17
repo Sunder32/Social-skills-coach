@@ -4,7 +4,8 @@ Handles conversation preparation and dialogue simulation
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.schemas.chat import (
@@ -16,6 +17,56 @@ from app.services.chat_service import ChatService
 from app.services.user_service import UserService
 
 router = APIRouter()
+
+
+# Additional schemas for simple chat
+class ChatCreateRequest(BaseModel):
+    """Request to create a new chat"""
+    title: Optional[str] = None
+    type: str = "conversation"  # conversation, preparation, simulation, analysis
+
+
+class MessageRequest(BaseModel):
+    """Request to send a message"""
+    content: str
+
+
+@router.get("", response_model=List[ChatHistory])
+async def get_all_chats(
+    limit: int = 20,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: int = Depends(UserService.get_current_user_id)
+):
+    """Get all user's chats"""
+    service = ChatService(db)
+    history = await service.get_history(current_user_id, limit, offset)
+    return history
+
+
+@router.post("", response_model=ChatHistory)
+async def create_chat(
+    request: ChatCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: int = Depends(UserService.get_current_user_id)
+):
+    """Create a new chat"""
+    service = ChatService(db)
+    chat = await service.create_chat(current_user_id, request.title, request.type)
+    return chat
+
+
+@router.post("/{chat_id}/messages", response_model=DialogueResponse)
+async def send_message(
+    chat_id: int,
+    request: MessageRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: int = Depends(UserService.get_current_user_id)
+):
+    """Send a message in a chat"""
+    service = ChatService(db)
+    response = await service.send_message(chat_id, current_user_id, request.content)
+    return response
 
 
 @router.post("/prepare", response_model=ConversationPrepareResponse)

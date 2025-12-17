@@ -45,7 +45,7 @@ class ChatService:
             conversation_type=request.conversation_type.value,
             situation=request.situation,
             plan=plan_data,
-            metadata={
+            chat_metadata={
                 "interlocutor": request.interlocutor,
                 "desired_outcome": request.desired_outcome,
                 "concerns": request.concerns
@@ -251,3 +251,88 @@ class ChatService:
             chat.feedback_rating = rating
             chat.feedback_comment = comment
             await self.db.commit()
+
+    async def create_chat(
+        self, 
+        user_id: int, 
+        title: str = None, 
+        chat_type: str = "conversation"
+    ) -> ChatHistory:
+        """Create a new chat session"""
+        chat = Chat(
+            user_id=user_id,
+            type=chat_type,
+            title=title or "Новый разговор"
+        )
+        
+        self.db.add(chat)
+        await self.db.commit()
+        await self.db.refresh(chat)
+        
+        return ChatHistory(
+            id=chat.id,
+            type=chat.type,
+            title=chat.title,
+            preview="",
+            created_at=chat.created_at,
+            updated_at=chat.updated_at
+        )
+    
+    async def send_message(
+        self, 
+        chat_id: int, 
+        user_id: int, 
+        content: str
+    ) -> DialogueResponse:
+        """Send a message and get AI response"""
+        # Get chat
+        result = await self.db.execute(
+            select(Chat).where(Chat.id == chat_id, Chat.user_id == user_id)
+        )
+        chat = result.scalar_one_or_none()
+        
+        if not chat:
+            raise ValueError("Chat not found")
+        
+        # Get message history
+        messages_result = await self.db.execute(
+            select(ChatMessage)
+            .where(ChatMessage.chat_id == chat.id)
+            .order_by(ChatMessage.created_at)
+        )
+        messages = messages_result.scalars().all()
+        history = [{"role": m.role, "content": m.content} for m in messages]
+        
+        # Save user message
+        user_msg = ChatMessage(
+            chat_id=chat.id,
+            role="user",
+            content=content
+        )
+        self.db.add(user_msg)
+        history.append({"role": "user", "content": content})
+        
+        # Generate AI response
+        ai_response = await self.ai_service.generate_chat_response(
+            history=history,
+            context=chat.situation
+        )
+        
+        # Save AI message
+        ai_msg = ChatMessage(
+            chat_id=chat.id,
+            role="assistant",
+            content=ai_response["message"]
+        )
+        self.db.add(ai_msg)
+        
+        await self.db.commit()
+        
+        return DialogueResponse(
+            session_id=chat.id,
+            ai_message=ai_response["message"],
+            message_analysis=ai_response.get("analysis"),
+            suggestions=ai_response.get("suggestions"),
+            session_complete=False,
+            final_feedback=None
+        )

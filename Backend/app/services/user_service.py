@@ -3,7 +3,8 @@ User service - handles user operations and authentication
 """
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from passlib.context import CryptContext
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
@@ -15,8 +16,8 @@ from app.models.progress import Progress
 from app.schemas.user import UserCreate, UserProfileUpdate, UserProgress
 from app.config import settings
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing with Argon2
+ph = PasswordHasher()
 
 # OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/login", auto_error=False)
@@ -24,6 +25,20 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/login", auto_error=Fal
 # JWT settings
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
+
+
+def hash_password(password: str) -> str:
+    """Hash a password using Argon2"""
+    return ph.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash"""
+    try:
+        ph.verify(hashed_password, plain_password)
+        return True
+    except VerifyMismatchError:
+        return False
 
 
 class UserService:
@@ -34,11 +49,11 @@ class UserService:
     
     async def create(self, user_data: UserCreate) -> User:
         """Create a new user"""
-        hashed_password = pwd_context.hash(user_data.password)
+        hashed = hash_password(user_data.password)
         
         user = User(
             email=user_data.email,
-            hashed_password=hashed_password,
+            hashed_password=hashed,
             name=user_data.name
         )
         
@@ -75,7 +90,7 @@ class UserService:
         if not user:
             return None
         
-        if not pwd_context.verify(password, user.hashed_password):
+        if not verify_password(password, user.hashed_password):
             return None
         
         # Update last login
@@ -103,6 +118,10 @@ class UserService:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
+        
+        # In development mode, allow anonymous access with default user
+        if settings.APP_ENV == "development" and not token:
+            return 1  # Default development user ID
         
         if not token:
             raise credentials_exception

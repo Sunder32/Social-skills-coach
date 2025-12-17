@@ -4,14 +4,34 @@ echo  Social Skills Coach - Setup Script
 echo ========================================
 echo.
 
+:: Set Python path - prefer Python 3.12 or 3.11
+set "PYTHON_PATH="
+if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
+    set "PYTHON_PATH=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+) else if exist "%LOCALAPPDATA%\Programs\Python\Python311\python.exe" (
+    set "PYTHON_PATH=%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
+) else if exist "C:\Python312\python.exe" (
+    set "PYTHON_PATH=C:\Python312\python.exe"
+) else if exist "C:\Python311\python.exe" (
+    set "PYTHON_PATH=C:\Python311\python.exe"
+)
+
 :: Check Python
 echo Checking Python installation...
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Python is not installed or not in PATH
-    echo Please install Python 3.11+ from https://python.org
-    pause
-    exit /b 1
+if defined PYTHON_PATH (
+    echo Found Python at: %PYTHON_PATH%
+    "%PYTHON_PATH%" --version
+) else (
+    echo WARNING: Python 3.11/3.12 not found in standard locations
+    echo Falling back to system Python...
+    python --version >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: Python is not installed or not in PATH
+        echo Please install Python 3.11 or 3.12 from https://python.org
+        pause
+        exit /b 1
+    )
+    set "PYTHON_PATH=python"
 )
 
 :: Check Node.js
@@ -31,10 +51,12 @@ echo ========================================
 cd Backend
 if not exist "venv" (
     echo Creating virtual environment...
-    python -m venv venv
+    "%PYTHON_PATH%" -m venv venv
 )
 echo Activating virtual environment...
 call venv\Scripts\activate.bat
+echo Upgrading pip...
+python -m pip install --upgrade pip
 echo Installing dependencies...
 pip install -r requirements.txt
 cd ..
@@ -46,10 +68,12 @@ echo ========================================
 cd AI
 if not exist "venv" (
     echo Creating virtual environment...
-    python -m venv venv
+    "%PYTHON_PATH%" -m venv venv
 )
 echo Activating virtual environment...
 call venv\Scripts\activate.bat
+echo Upgrading pip...
+python -m pip install --upgrade pip
 echo Installing dependencies...
 pip install -r requirements.txt
 cd ..

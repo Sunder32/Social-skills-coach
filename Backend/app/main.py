@@ -27,6 +27,36 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     
     print("✅ Database tables created")
+    
+    # Create default user for development
+    if settings.APP_ENV == "development":
+        from app.database import AsyncSessionLocal
+        from app.models.user import User
+        from app.models.progress import Progress
+        from sqlalchemy import select
+        
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(User).where(User.id == 1))
+            user = result.scalar_one_or_none()
+            
+            if not user:
+                from app.services.user_service import hash_password
+                
+                user = User(
+                    id=1,
+                    email="dev@localhost",
+                    hashed_password=hash_password("dev123"),
+                    name="Developer"
+                )
+                session.add(user)
+                await session.flush()
+                
+                progress = Progress(user_id=user.id)
+                session.add(progress)
+                
+                await session.commit()
+                print("✅ Default development user created")
+    
     print(f"📡 API running at http://{settings.BACKEND_HOST}:{settings.BACKEND_PORT}")
     
     yield

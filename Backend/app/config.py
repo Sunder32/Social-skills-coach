@@ -20,12 +20,14 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = "localhost"
     BACKEND_PORT: int = 8000
     
-    # Database - MySQL
+    # Database
+    DB_TYPE: str = "sqlite"  # sqlite or mysql
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str = ""
     MYSQL_DATABASE: str = "social_skills_coach"
+    SQLITE_PATH: str = "./data/social_skills.db"
     
     # Redis Cache
     REDIS_HOST: str = "localhost"
@@ -50,11 +52,15 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         """Generate async database URL"""
+        if self.DB_TYPE == "sqlite":
+            return f"sqlite+aiosqlite:///{self.SQLITE_PATH}"
         return f"mysql+aiomysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
     
     @property
     def SYNC_DATABASE_URL(self) -> str:
         """Generate sync database URL for migrations"""
+        if self.DB_TYPE == "sqlite":
+            return f"sqlite:///{self.SQLITE_PATH}"
         return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
     
     class Config:

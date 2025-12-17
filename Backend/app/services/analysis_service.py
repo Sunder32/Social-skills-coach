@@ -44,7 +44,7 @@ class AnalysisService:
             type="analysis",
             title="Анализ текста",
             situation=request.text[:500],
-            metadata={
+            chat_metadata={
                 "context": request.context,
                 "analysis_result": analysis
             }
@@ -143,7 +143,7 @@ class AnalysisService:
             type="analysis",
             title="Пост-анализ разговора",
             situation=request.actual_outcome[:500],
-            metadata={
+            chat_metadata={
                 "preparation_id": request.preparation_id,
                 "what_worked": request.what_worked,
                 "what_didnt_work": request.what_didnt_work,
