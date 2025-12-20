@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { libraryApi } from '../services/api';
 
 const useLibraryStore = create((set) => ({
-  // State
+
   topics: [],
   techniques: [],
   currentTopic: null,
@@ -11,7 +11,6 @@ const useLibraryStore = create((set) => ({
   isLoading: false,
   error: null,
 
-  // Actions
   fetchTopics: async () => {
     set({ isLoading: true, error: null });
     try {

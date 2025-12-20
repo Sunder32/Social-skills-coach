@@ -1,5 +1,3 @@
-/* Global styles */
-
 * {
   margin: 0;
   padding: 0;
@@ -15,37 +13,34 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #1a1a2e;
-  color: #eaeaea;
+  background-color: #ffffff;
+  color: #000000;
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a2e;
+  background: #f5f5f5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a4a6a;
+  background: #cccccc;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6a6a8a;
+  background: #999999;
 }
 
-/* Selection */
 ::selection {
-  background: rgba(124, 58, 237, 0.3);
+  background: rgba(223, 37, 49, 0.2);
 }
 
-/* Links */
 a {
-  color: #7c3aed;
+  color: #df2531;
   text-decoration: none;
 }
 
@@ -53,7 +48,6 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Custom animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -83,7 +77,6 @@ a:hover {
   animation: slideUp 0.4s ease-out;
 }
 
-/* Message bubble animations */
 .message-enter {
   opacity: 0;
   transform: translateY(10px);

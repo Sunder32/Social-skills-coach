@@ -47,7 +47,6 @@ function ChatList({ chats, currentChatId, onSelectChat, onDeleteChat, onNewChat 
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
       <Box
         sx={{
           p: 2,
@@ -76,7 +75,6 @@ function ChatList({ chats, currentChatId, onSelectChat, onDeleteChat, onNewChat 
         </Tooltip>
       </Box>
 
-      {/* Chat list */}
       <List sx={{ flex: 1, overflow: 'auto', p: 1 }}>
         {chats.length === 0 ? (
           <Box
@@ -138,8 +136,8 @@ function ChatList({ chats, currentChatId, onSelectChat, onDeleteChat, onNewChat 
                         sx={{
                           height: 20,
                           fontSize: '0.65rem',
-                          backgroundColor: 'rgba(124, 58, 237, 0.15)',
-                          color: 'primary.light',
+                          backgroundColor: 'rgba(223, 37, 49, 0.1)',
+                          color: 'primary.main',
                         }}
                       />
                     )}

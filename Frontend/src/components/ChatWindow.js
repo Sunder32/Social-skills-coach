@@ -10,7 +10,6 @@ import {
 } from '@mui/material';
 import {
   Send as SendIcon,
-  Mic as MicIcon,
   AttachFile as AttachIcon,
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
@@ -34,7 +33,7 @@ function MessageBubble({ message, isUser }) {
           borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
           backgroundColor: isUser ? 'primary.main' : 'background.paper',
           color: isUser ? 'white' : 'text.primary',
-          border: isUser ? 'none' : '1px solid rgba(255,255,255,0.05)',
+          border: isUser ? 'none' : '1px solid rgba(0,0,0,0.08)',
         }}
       >
         {isUser ? (
@@ -84,7 +83,7 @@ function TypingIndicator() {
           px: 3,
           borderRadius: '16px 16px 16px 4px',
           backgroundColor: 'background.paper',
-          border: '1px solid rgba(255,255,255,0.05)',
+          border: '1px solid rgba(0,0,0,0.08)',
           display: 'flex',
           gap: 0.5,
         }}
@@ -112,7 +111,6 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
@@ -140,7 +138,7 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
         backgroundColor: 'background.default',
       }}
     >
-      {/* Messages area */}
+
       <Box
         sx={{
           flex: 1,
@@ -194,7 +192,6 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
         )}
       </Box>
 
-      {/* Input area */}
       <Box
         sx={{
           p: 2,
@@ -213,7 +210,7 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
             p: 1,
             backgroundColor: 'background.paper',
             borderRadius: 3,
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid rgba(0,0,0,0.12)',
           }}
         >
           <Tooltip title="Прикрепить файл">
@@ -243,12 +240,6 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
               },
             }}
           />
-
-          <Tooltip title="Голосовой ввод">
-            <IconButton size="small" sx={{ color: 'text.secondary' }}>
-              <MicIcon />
-            </IconButton>
-          </Tooltip>
 
           <Tooltip title="Отправить">
             <span>

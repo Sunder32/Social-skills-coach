@@ -49,7 +49,6 @@ function Layout({ children }) {
 
   return (
     <Box sx={{ display: 'flex', width: '100%' }}>
-      {/* Sidebar */}
       <Drawer
         variant="permanent"
         sx={{
@@ -72,7 +71,6 @@ function Layout({ children }) {
           },
         }}
       >
-        {/* Logo */}
         <Box
           sx={{
             display: 'flex',
@@ -89,13 +87,10 @@ function Layout({ children }) {
                 variant="h6"
                 sx={{
                   fontWeight: 700,
-                  background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  color: 'transparent',
+                  color: 'primary.main',
                 }}
               >
-                Social Coach
+                SOCIAL COACH
               </Typography>
             </Box>
           )}
@@ -106,7 +101,6 @@ function Layout({ children }) {
 
         <Divider sx={{ opacity: 0.5 }} />
 
-        {/* Navigation */}
         <List sx={{ px: 1, py: 2, flex: 1 }}>
           {menuItems.map((item) => (
             <Tooltip
@@ -150,7 +144,6 @@ function Layout({ children }) {
 
         <Divider sx={{ opacity: 0.5 }} />
 
-        {/* Settings & Profile */}
         <List sx={{ px: 1, py: 1 }}>
           <Tooltip title={!drawerOpen ? 'Настройки' : ''} placement="right">
             <ListItemButton
@@ -175,7 +168,6 @@ function Layout({ children }) {
           </Tooltip>
         </List>
 
-        {/* User info */}
         {drawerOpen && (
           <Box
             sx={{
@@ -208,7 +200,6 @@ function Layout({ children }) {
         )}
       </Drawer>
 
-      {/* Main content */}
       <Box
         component="main"
         sx={{

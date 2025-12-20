@@ -6,76 +6,76 @@ import {
   Card,
   CardContent,
   LinearProgress,
-  Chip,
+  Button,
   CircularProgress,
 } from '@mui/material';
 import {
-  TrendingUp as TrendingUpIcon,
-  EmojiEvents as TrophyIcon,
-  Timer as TimerIcon,
-  Chat as ChatIcon,
+  LocalFireDepartment as FireIcon,
+  FitnessCenter as ExerciseIcon,
+  Schedule as TimeIcon,
+  Star as StarIcon,
+  Lightbulb as LightbulbIcon,
 } from '@mui/icons-material';
 import { usersApi, analysisApi } from '../services/api';
 
-function StatCard({ icon, title, value, subtitle, color = 'primary.main' }) {
+function StatCard({ icon, title, value, color = 'primary.main' }) {
   return (
-    <Card>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-          <Box
-            sx={{
-              p: 1.5,
-              borderRadius: 2,
-              backgroundColor: `${color}15`,
-              color: color,
-            }}
-          >
-            {icon}
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              {title}
-            </Typography>
-            <Typography variant="h4" fontWeight={700}>
-              {value}
-            </Typography>
-            {subtitle && (
-              <Typography variant="caption" color="text.secondary">
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
+    <Card
+      sx={{
+        border: '2px solid',
+        borderColor: 'primary.main',
+        borderRadius: 3,
+        boxShadow: 'none',
+        textAlign: 'center',
+      }}
+    >
+      <CardContent sx={{ py: 3 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            mb: 1,
+            color: 'primary.main',
+          }}
+        >
+          {icon}
         </Box>
+        <Typography variant="h3" fontWeight={700} sx={{ mb: 0.5 }}>
+          {value}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {title}
+        </Typography>
       </CardContent>
     </Card>
   );
 }
 
-function SkillCard({ name, level, progress }) {
-  const getColor = (level) => {
-    if (level >= 80) return 'success';
-    if (level >= 50) return 'warning';
-    return 'error';
-  };
-
+function SkillBar({ name, level }) {
   return (
     <Box sx={{ mb: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-        <Typography variant="body2" fontWeight={500}>
+        <Typography variant="body2" fontWeight={500} color="text.primary">
           {name}
         </Typography>
-        <Chip
-          label={`${level}%`}
-          size="small"
-          color={getColor(level)}
+        <Typography variant="body2" fontWeight={600} color="text.primary">
+          {level}%
+        </Typography>
+      </Box>
+      <Box sx={{ position: 'relative', height: 12, borderRadius: 2, backgroundColor: 'rgba(223, 37, 49, 0.1)' }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            width: `${level}%`,
+            backgroundColor: 'primary.main',
+            borderRadius: 2,
+            transition: 'width 0.5s ease-in-out',
+          }}
         />
       </Box>
-      <LinearProgress
-        variant="determinate"
-        value={progress}
-        color={getColor(level)}
-        sx={{ height: 8, borderRadius: 4 }}
-      />
     </Box>
   );
 }
@@ -100,18 +100,18 @@ function ProgressPage() {
       setRecommendations(recsRes.data || []);
     } catch (error) {
       console.error('Error loading progress:', error);
-      // Set mock data for demo
       setProgress({
-        totalChats: 12,
-        totalExercises: 8,
-        practiceTime: 245,
-        currentStreak: 5,
+        daysActive: 24,
+        exercisesCompleted: 47,
+        hoursLearning: 18,
+        averageResult: 92,
         skills: [
-          { name: 'Активное слушание', level: 75, progress: 75 },
-          { name: 'Эмпатия', level: 60, progress: 60 },
-          { name: 'Разрешение конфликтов', level: 45, progress: 45 },
-          { name: 'Публичные выступления', level: 30, progress: 30 },
-          { name: 'Переговоры', level: 55, progress: 55 },
+          { name: 'Активное слушание', level: 85 },
+          { name: 'Эмпатия', level: 72 },
+          { name: 'Убеждение', level: 68 },
+          { name: 'Управление конфликтами', level: 79 },
+          { name: 'Невербальная коммуникация', level: 91 },
+          { name: 'Уверенность в общении', level: 78 },
         ],
       });
     } finally {
@@ -128,116 +128,130 @@ function ProgressPage() {
   }
 
   return (
-    <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Ваш прогресс
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Отслеживайте развитие коммуникативных навыков
-        </Typography>
+    <Box sx={{ height: '100%', overflow: 'auto', p: 4, backgroundColor: 'background.default' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
+        <Box>
+          <Typography variant="h4" fontWeight={700} gutterBottom>
+            Ваш прогресс
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Отслеживайте развитие коммуникативных навыков
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          color="primary"
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            borderWidth: 2,
+            '&:hover': { borderWidth: 2 },
+          }}
+        >
+          Посмотреть рекомендации
+        </Button>
       </Box>
 
-      {/* Stats */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            icon={<ChatIcon />}
-            title="Диалогов"
-            value={progress?.totalChats || 0}
-            color="primary.main"
+            icon={<FireIcon sx={{ fontSize: 32 }} />}
+            title="Дней активности"
+            value={progress?.daysActive || 24}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            icon={<TrophyIcon />}
-            title="Упражнений"
-            value={progress?.totalExercises || 0}
-            color="success.main"
+            icon={<ExerciseIcon sx={{ fontSize: 32 }} />}
+            title="Упражнений завершено"
+            value={progress?.exercisesCompleted || 47}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            icon={<TimerIcon />}
-            title="Время практики"
-            value={`${progress?.practiceTime || 0}`}
-            subtitle="минут"
-            color="warning.main"
+            icon={<TimeIcon sx={{ fontSize: 32 }} />}
+            title="Часов обучения"
+            value={progress?.hoursLearning || 18}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            icon={<TrendingUpIcon />}
-            title="Серия дней"
-            value={progress?.currentStreak || 0}
-            subtitle="подряд"
-            color="error.main"
+            icon={<StarIcon sx={{ fontSize: 32 }} />}
+            title="Средний результат"
+            value={`${progress?.averageResult || 92}%`}
           />
         </Grid>
       </Grid>
 
-      <Grid container spacing={4}>
-        {/* Skills */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Навыки
-              </Typography>
-              
-              {progress?.skills?.map((skill, index) => (
-                <SkillCard
-                  key={index}
-                  name={skill.name}
-                  level={skill.level}
-                  progress={skill.progress}
-                />
-              ))}
-            </CardContent>
-          </Card>
-        </Grid>
+      <Card sx={{ borderRadius: 3, boxShadow: 'none' }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" fontWeight={600}>
+              Навыки
+            </Typography>
+            <Button
+              variant="text"
+              color="primary"
+              sx={{ textTransform: 'none', fontWeight: 600 }}
+            >
+              Улучшить навыки
+            </Button>
+          </Box>
+          
+          {progress?.skills?.map((skill, index) => (
+            <SkillBar
+              key={index}
+              name={skill.name}
+              level={skill.level}
+            />
+          ))}
+        </CardContent>
+      </Card>
 
-        {/* Recommendations */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Рекомендации
-              </Typography>
-              
-              {recommendations.length > 0 ? (
-                recommendations.map((rec, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      p: 2,
-                      mb: 2,
-                      borderRadius: 2,
-                      backgroundColor: 'background.default',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  >
-                    <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                      {rec.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {rec.description}
-                    </Typography>
-                  </Box>
-                ))
-              ) : (
-                <Box sx={{ py: 4, textAlign: 'center' }}>
-                  <Typography color="text.secondary">
-                    Продолжайте практиковаться, чтобы получить персональные рекомендации
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <Box
+        sx={{
+          mt: 4,
+          p: 4,
+          backgroundColor: 'rgba(223, 37, 49, 0.05)',
+          borderRadius: 3,
+          textAlign: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            backgroundColor: 'primary.main',
+            mb: 2,
+          }}
+        >
+          <LightbulbIcon sx={{ color: 'white', fontSize: 24 }} />
+        </Box>
+        <Typography variant="h6" fontWeight={600} gutterBottom>
+          Персональные рекомендации
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 500, mx: 'auto' }}>
+          Получите индивидуальные советы по развитию коммуникативных навыков на основе вашего прогресса и активности
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          size="large"
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 4,
+          }}
+        >
+          Получить рекомендации
+        </Button>
+      </Box>
     </Box>
   );
 }

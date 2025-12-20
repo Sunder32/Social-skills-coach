@@ -5,14 +5,13 @@ import { usersApi } from '../services/api';
 const useAuthStore = create(
   persist(
     (set, get) => ({
-      // State
+
       user: null,
       token: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
 
-      // Actions
       login: async (email, password) => {
         set({ isLoading: true, error: null });
         try {

@@ -2,25 +2,25 @@ import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#7c3aed',
-      light: '#9f67ff',
-      dark: '#5b21b6',
+      main: '#df2531',
+      light: 'rgba(223, 37, 49, 0.45)',
+      dark: '#b01d27',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#06b6d4',
-      light: '#22d3ee',
-      dark: '#0891b2',
+      main: 'rgba(223, 37, 49, 0.65)',
+      light: 'rgba(223, 37, 49, 0.45)',
+      dark: '#df2531',
     },
     background: {
-      default: '#1a1a2e',
-      paper: '#16213e',
+      default: '#ffffff',
+      paper: '#f5f5f5',
     },
     text: {
-      primary: '#eaeaea',
-      secondary: '#a0a0c0',
+      primary: '#000000',
+      secondary: '#666666',
     },
     success: {
       main: '#10b981',
@@ -29,9 +29,9 @@ const theme = createTheme({
       main: '#f59e0b',
     },
     error: {
-      main: '#ef4444',
+      main: '#df2531',
     },
-    divider: 'rgba(255, 255, 255, 0.1)',
+    divider: 'rgba(0, 0, 0, 0.12)',
   },
   typography: {
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
@@ -98,7 +98,8 @@ const theme = createTheme({
         root: {
           backgroundImage: 'none',
           borderRadius: 16,
-          border: '1px solid rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
         },
       },
     },
@@ -115,10 +116,10 @@ const theme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
             '& fieldset': {
-              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderColor: 'rgba(0, 0, 0, 0.12)',
             },
             '&:hover fieldset': {
-              borderColor: 'rgba(255, 255, 255, 0.2)',
+              borderColor: 'rgba(0, 0, 0, 0.2)',
             },
           },
         },
@@ -127,7 +128,8 @@ const theme = createTheme({
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+          backgroundColor: '#ffffff',
         },
       },
     },
@@ -137,9 +139,9 @@ const theme = createTheme({
           borderRadius: 8,
           margin: '2px 8px',
           '&.Mui-selected': {
-            backgroundColor: 'rgba(124, 58, 237, 0.15)',
+            backgroundColor: 'rgba(223, 37, 49, 0.08)',
             '&:hover': {
-              backgroundColor: 'rgba(124, 58, 237, 0.2)',
+              backgroundColor: 'rgba(223, 37, 49, 0.12)',
             },
           },
         },
@@ -155,8 +157,7 @@ const theme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: '#16213e',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundColor: '#000000',
           fontSize: '0.8rem',
         },
       },
