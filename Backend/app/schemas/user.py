@@ -1,5 +1,5 @@
 """
-User schemas for request/response validation
+Схемы пользователя для валидации запросов/ответов
 """
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
@@ -7,20 +7,20 @@ from datetime import datetime
 
 
 class UserCreate(BaseModel):
-    """Schema for user registration"""
+    """Схема для регистрации пользователя"""
     email: EmailStr
     password: str = Field(..., min_length=8)
     name: str = Field(..., min_length=2, max_length=100)
 
 
 class UserLogin(BaseModel):
-    """Schema for user login"""
+    """Схема для входа пользователя"""
     email: EmailStr
     password: str
 
 
 class UserProfileUpdate(BaseModel):
-    """Schema for profile update"""
+    """Схема для обновления профиля"""
     name: Optional[str] = Field(None, min_length=2, max_length=100)
     occupation: Optional[str] = Field(None, max_length=200)
     goals: Optional[List[str]] = None
@@ -30,7 +30,7 @@ class UserProfileUpdate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Schema for user response"""
+    """Схема для ответа с данными пользователя"""
     id: int
     email: str
     name: str
@@ -47,19 +47,19 @@ class UserResponse(BaseModel):
 
 
 class Token(BaseModel):
-    """Schema for JWT token response"""
+    """Схема для ответа с JWT токеном"""
     access_token: str
     token_type: str = "bearer"
 
 
 class TokenData(BaseModel):
-    """Schema for decoded token data"""
+    """Схема для расшифрованных данных токена"""
     user_id: int
     exp: datetime
 
 
 class UserProgress(BaseModel):
-    """Schema for user progress statistics"""
+    """Схема для статистики прогресса пользователя"""
     total_conversations: int = 0
     total_analyses: int = 0
     total_exercises: int = 0
@@ -68,3 +68,17 @@ class UserProgress(BaseModel):
     skill_improvements: dict = {}
     recent_activity: List[dict] = []
     achievements: List[str] = []
+
+
+class PasswordResetRequest(BaseModel):
+    """Схема для запроса восстановления пароля"""
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+
+class MessageResponse(BaseModel):
+    message: str

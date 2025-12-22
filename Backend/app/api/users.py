@@ -9,7 +9,7 @@ from typing import List
 from app.database import get_db
 from app.schemas.user import (
     UserCreate, UserLogin, UserResponse, UserProfileUpdate,
-    Token, UserProgress
+    Token, UserProgress, PasswordResetRequest, PasswordReset, MessageResponse
 )
 from app.services.user_service import UserService
 
@@ -19,15 +19,14 @@ router = APIRouter()
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """
-    Register a new user
+    Регистрация нового пользователя
     
-    - **email**: User's email address
-    - **password**: User's password (min 8 characters)
-    - **name**: User's display name
+    - **email**: Email адрес пользователя
+    - **password**: Пароль (минимум 8 символов)
+    - **name**: Имя пользователя
     """
     service = UserService(db)
     
-    # Check if user exists
     existing_user = await service.get_by_email(user_data.email)
     if existing_user:
         raise HTTPException(
@@ -42,10 +41,10 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     """
-    Authenticate user and return JWT token
+    Аутентификация пользователя и получение JWT токена
     
-    - **email**: User's email
-    - **password**: User's password
+    - **email**: Email пользователя
+    - **password**: Пароль пользователя
     """
     service = UserService(db)
     
@@ -66,7 +65,7 @@ async def get_profile(
     db: AsyncSession = Depends(get_db),
     current_user_id: int = Depends(UserService.get_current_user_id)
 ):
-    """Get current user's profile"""
+    """Получение профиля текущего пользователя"""
     service = UserService(db)
     user = await service.get_by_id(current_user_id)
     
@@ -86,13 +85,13 @@ async def update_profile(
     current_user_id: int = Depends(UserService.get_current_user_id)
 ):
     """
-    Update user profile
+    Обновление профиля пользователя
     
-    - **name**: Display name
-    - **occupation**: User's occupation/field
-    - **goals**: Communication goals
-    - **problem_areas**: Areas to improve
-    - **skill_level**: Self-assessed skill level (1-10)
+    - **name**: Имя пользователя
+    - **occupation**: Профессия/сфера деятельности
+    - **goals**: Цели коммуникации
+    - **problem_areas**: Области для улучшения
+    - **skill_level**: Самооценка навыков (1-10)
     """
     service = UserService(db)
     user = await service.update_profile(current_user_id, profile_data)
@@ -104,7 +103,7 @@ async def get_progress(
     db: AsyncSession = Depends(get_db),
     current_user_id: int = Depends(UserService.get_current_user_id)
 ):
-    """Get user's learning progress and statistics"""
+    """Получение статистики прогресса обучения"""
     service = UserService(db)
     progress = await service.get_progress(current_user_id)
     return progress
@@ -115,6 +114,70 @@ async def delete_account(
     db: AsyncSession = Depends(get_db),
     current_user_id: int = Depends(UserService.get_current_user_id)
 ):
-    """Delete user account and all associated data"""
+    """Удаление аккаунта пользователя и всех связанных данных"""
     service = UserService(db)
     await service.delete(current_user_id)
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    request: PasswordResetRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Запрос на восстановление пароля
+    
+    Отправляет письмо с инструкциями на указанный email
+    
+    - **email**: Email адрес пользователя
+    """
+    service = UserService(db)
+    
+    success = await service.request_password_reset(request.email)
+    
+    # Всегда возвращаем успех (в целях безопасности)
+    return {
+        "message": "Если указанный email зарегистрирован, на него будет отправлено письмо с инструкциями по восстановлению пароля."
+    }
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    reset_data: PasswordReset,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Сброс пароля по токену из email
+    
+    - **token**: Токен из письма для восстановления
+    - **new_password**: Новый пароль (минимум 8 символов)
+    """
+    service = UserService(db)
+    
+    await service.reset_password(reset_data.token, reset_data.new_password)
+    
+    return {
+        "message": "Пароль успешно изменён. Теперь вы можете войти с новым паролем."
+    }
+
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(
+    old_password: str,
+    new_password: str,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: int = Depends(UserService.get_current_user_id)
+):
+    """
+    Изменение пароля (требует аутентификации)
+    
+    - **old_password**: Текущий пароль
+    - **new_password**: Новый пароль (минимум 8 символов)
+    """
+    service = UserService(db)
+    
+    await service.change_password(current_user_id, old_password, new_password)
+    
+    return {
+        "message": "Пароль успешно изменён."
+    }
