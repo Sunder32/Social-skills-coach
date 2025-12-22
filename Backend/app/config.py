@@ -5,6 +5,10 @@ Loads settings from environment variables
 from pydantic_settings import BaseSettings
 from typing import Optional
 import os
+from pathlib import Path
+
+# Base directory for the Backend module
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
@@ -27,23 +31,17 @@ class Settings(BaseSettings):
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str = ""
     MYSQL_DATABASE: str = "social_skills_coach"
-    SQLITE_PATH: str = "./data/social_skills.db"
+    SQLITE_PATH: str = str(BASE_DIR / "data" / "social_skills.db")
     
     # Redis Cache
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: Optional[str] = None
     
-    # AI Services
-    OPENAI_API_KEY: Optional[str] = None
-    ANTHROPIC_API_KEY: Optional[str] = None
-    AI_MODEL: str = "gpt-4"
-    AI_TEMPERATURE: float = 0.7
-    AI_MAX_TOKENS: int = 4000
-    
-    # FAISS
-    FAISS_INDEX_PATH: str = "./data/faiss_index"
-    EMBEDDINGS_MODEL: str = "text-embedding-ada-002"
+    # AI API Settings (external DASA AI Server)
+    AI_API_URL: str = "http://localhost:8100/api/v1"
+    AI_API_KEY: str = ""
+    AI_API_TIMEOUT: float = 60.0
     
     # File Upload
     MAX_UPLOAD_SIZE: int = 10485760  # 10MB
@@ -67,6 +65,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"
 
 
 # Global settings instance

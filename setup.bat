@@ -63,23 +63,6 @@ cd ..
 
 echo.
 echo ========================================
-echo  Setting up AI Module
-echo ========================================
-cd AI
-if not exist "venv" (
-    echo Creating virtual environment...
-    "%PYTHON_PATH%" -m venv venv
-)
-echo Activating virtual environment...
-call venv\Scripts\activate.bat
-echo Upgrading pip...
-python -m pip install --upgrade pip
-echo Installing dependencies...
-pip install -r requirements.txt
-cd ..
-
-echo.
-echo ========================================
 echo  Setting up Frontend
 echo ========================================
 cd Frontend
@@ -94,7 +77,9 @@ echo ========================================
 if not exist ".env" (
     copy .env.example .env
     echo Created .env file from template
-    echo Please edit .env with your configuration
+    echo.
+    echo IMPORTANT: Edit .env and set AI_API_URL and AI_API_KEY
+    echo to connect to your DASA AI server!
 ) else (
     echo .env file already exists
 )
@@ -104,10 +89,14 @@ echo ========================================
 echo  Setup Complete!
 echo ========================================
 echo.
+echo IMPORTANT: This application requires DASA AI Server!
+echo Make sure to:
+echo   1. Set up DASA AI Server (separate project)
+echo   2. Configure AI_API_URL and AI_API_KEY in .env
+echo.
 echo To start the application:
 echo   1. Start Backend:  run-backend.bat
-echo   2. Start AI:       run-ai.bat
-echo   3. Start Frontend: run-frontend.bat
+echo   2. Start Frontend: run-frontend.bat
 echo.
 echo Or use Docker:
 echo   docker-compose up

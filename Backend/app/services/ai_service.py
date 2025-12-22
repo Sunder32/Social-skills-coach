@@ -1,45 +1,49 @@
 """
-AI Service - integrates with AI module for all AI operations
+AI Service - integrates with external AI API for all AI operations
+Uses DASA AI API Server via HTTP
 """
-import sys
 import os
 from typing import Dict, List, Any, Optional
-
-# Add AI module to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', 'AI'))
+import threading
 
 from app.config import settings
+from app.services.ai_api_client import AIAPIClient
 
 
 class AIService:
     """
-    Service for AI operations
-    Integrates Backend with AI module
+    Service for AI operations.
+    Connects to external DASA AI API Server.
     """
     
-    def __init__(self):
-        self._initialize_ai_modules()
+    _instance = None
+    _initialized = False
+    _init_lock = threading.Lock()
     
-    def _initialize_ai_modules(self):
-        """Initialize AI module components"""
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        if AIService._initialized:
+            return
+        
+        with AIService._init_lock:
+            if not AIService._initialized:
+                self._initialize_client()
+                AIService._initialized = True
+    
+    def _initialize_client(self):
+        """Initialize AI API client"""
         try:
-            from core.llm_client import LLMClient
-            from rag.retriever import RAGRetriever
-            from analysis.sentiment import SentimentAnalyzer
-            from analysis.patterns import PatternAnalyzer
-            
-            self.llm_client = LLMClient()
-            self.rag_retriever = RAGRetriever()
-            self.sentiment_analyzer = SentimentAnalyzer()
-            self.pattern_analyzer = PatternAnalyzer()
+            self.client = AIAPIClient()
             self._ai_available = True
-        except ImportError as e:
-            print(f"Warning: AI modules not fully available: {e}")
+            print("AI API Client initialized successfully")
+        except Exception as e:
+            print(f"Warning: AI API client initialization failed: {e}")
+            self.client = None
             self._ai_available = False
-            self.llm_client = None
-            self.rag_retriever = None
-            self.sentiment_analyzer = None
-            self.pattern_analyzer = None
     
     async def generate_conversation_plan(
         self,
@@ -51,26 +55,16 @@ class AIService:
     ) -> Dict[str, Any]:
         """Generate a conversation preparation plan"""
         
-        if not self._ai_available:
+        if not self._ai_available or not self.client:
             return self._get_fallback_plan(conversation_type, situation)
         
-        # Search knowledge base for relevant techniques
-        relevant_knowledge = await self.rag_retriever.search(
-            query=f"{conversation_type} {situation}",
-            top_k=5
-        )
-        
-        # Generate plan using LLM
-        plan = await self.llm_client.generate_conversation_plan(
+        return await self.client.generate_conversation_plan(
             conversation_type=conversation_type,
             situation=situation,
             interlocutor=interlocutor,
             desired_outcome=desired_outcome,
-            concerns=concerns,
-            knowledge_context=relevant_knowledge
+            concerns=concerns
         )
-        
-        return plan
     
     async def generate_dialogue_response(
         self,
@@ -80,27 +74,18 @@ class AIService:
     ) -> Dict[str, Any]:
         """Generate AI response in dialogue simulation"""
         
-        if not self._ai_available:
+        if not self._ai_available or not self.client:
             return self._get_fallback_response(personality_type)
         
-        # Analyze last user message if exists
-        user_message_analysis = None
-        if history and history[-1]["role"] == "user":
-            user_message_analysis = await self.analyze_user_message(
-                history[-1]["content"]
-            )
-        
-        # Generate response
-        response = await self.llm_client.generate_dialogue_response(
+        response = await self.client.generate_dialogue_response(
             personality_type=personality_type,
             scenario=scenario,
-            history=history,
-            user_analysis=user_message_analysis
+            history=history
         )
         
         return {
-            "message": response["message"],
-            "user_message_analysis": user_message_analysis,
+            "message": response.get("message", ""),
+            "user_message_analysis": response.get("user_message_analysis"),
             "suggestions": response.get("suggestions"),
             "session_complete": response.get("session_complete", False),
             "final_feedback": response.get("final_feedback")
@@ -113,54 +98,33 @@ class AIService:
     ) -> Dict[str, Any]:
         """Analyze text for communication patterns"""
         
-        if not self._ai_available:
+        if not self._ai_available or not self.client:
             return self._get_fallback_analysis()
         
-        # Sentiment analysis
-        sentiment = await self.sentiment_analyzer.analyze(text)
-        
-        # Pattern analysis
-        patterns = await self.pattern_analyzer.analyze(text)
-        
-        # I-messages vs You-messages
-        message_balance = await self.pattern_analyzer.analyze_message_balance(text)
-        
-        # Detect issues
-        issues = await self.pattern_analyzer.detect_issues(text)
-        
-        # Get recommendations from LLM
-        recommendations = await self.llm_client.generate_recommendations(
-            text=text,
-            context=context,
-            sentiment=sentiment,
-            patterns=patterns,
-            issues=issues
-        )
+        result = await self.client.analyze_text(text, context)
         
         return {
-            "sentiment": sentiment,
-            "patterns": patterns,
-            "message_balance": message_balance,
-            "issues": issues,
-            "strengths": recommendations.get("strengths", []),
-            "recommendations": recommendations.get("recommendations", []),
-            "alternatives": recommendations.get("alternatives", []),
-            "overall_assessment": recommendations.get("overall_assessment", "")
+            "sentiment": result.get("sentiment", {}),
+            "patterns": result.get("patterns", {}),
+            "message_balance": result.get("message_balance", {}),
+            "issues": result.get("issues", []),
+            "strengths": [],
+            "recommendations": result.get("recommendations", []),
+            "alternatives": [],
+            "overall_assessment": ""
         }
     
     async def analyze_user_message(self, message: str) -> Dict[str, Any]:
         """Quick analysis of user's message in dialogue"""
         
-        if not self._ai_available:
+        if not self._ai_available or not self.client:
             return {}
         
-        sentiment = await self.sentiment_analyzer.analyze(message)
-        patterns = await self.pattern_analyzer.quick_analyze(message)
-        
+        result = await self.client.analyze_text(message)
         return {
-            "sentiment": sentiment,
-            "patterns": patterns,
-            "feedback": await self.llm_client.generate_quick_feedback(message)
+            "sentiment": result.get("sentiment", {}),
+            "patterns": result.get("patterns", {}),
+            "feedback": None
         }
     
     async def generate_post_analysis(
@@ -173,16 +137,29 @@ class AIService:
     ) -> Dict[str, Any]:
         """Generate post-conversation analysis"""
         
-        if not self._ai_available:
+        if not self._ai_available or not self.client:
             return self._get_fallback_post_analysis()
         
-        return await self.llm_client.generate_post_analysis(
-            preparation_plan=preparation_plan,
-            actual_outcome=actual_outcome,
-            what_worked=what_worked,
-            what_didnt_work=what_didnt_work,
-            emotions=emotions
-        )
+        # Use generate endpoint for post analysis
+        prompt = f"""Проанализируй результаты разговора:
+
+Результат: {actual_outcome}
+Что сработало: {what_worked or 'не указано'}
+Что не сработало: {what_didnt_work or 'не указано'}
+Эмоции: {emotions or 'не указано'}
+
+Дай рекомендации для улучшения навыков общения."""
+
+        response = await self.client.generate(prompt, max_tokens=1024)
+        
+        return {
+            "plan_comparison": None,
+            "success_factors": [],
+            "improvement_areas": [],
+            "lessons_learned": [],
+            "recommendations_for_future": [response] if response else [],
+            "skill_progress": {}
+        }
     
     async def search_knowledge(
         self,
@@ -192,14 +169,12 @@ class AIService:
     ) -> List[Dict[str, Any]]:
         """Search knowledge base"""
         
-        if not self._ai_available or not self.rag_retriever:
+        if not self._ai_available or not self.client:
             return []
         
-        return await self.rag_retriever.search(
-            query=query,
-            topic=topic,
-            top_k=limit
-        )
+        full_query = f"{topic} {query}" if topic else query
+        results = await self.client.rag_search(full_query, top_k=limit)
+        return results
     
     async def generate_chat_response(
         self,
@@ -208,26 +183,41 @@ class AIService:
     ) -> Dict[str, Any]:
         """Generate AI response for general chat"""
         
-        if not self._ai_available:
+        if not self._ai_available or not self.client:
             return {
-                "message": "Привет! Я - AI-помощник для развития навыков общения. К сожалению, полная функциональность AI временно недоступна. Пожалуйста, настройте API ключи в файле .env для использования всех возможностей.",
+                "message": "Привет! Я - AI-помощник для развития навыков общения. К сожалению, AI API временно недоступен. Пожалуйста, проверьте подключение к AI серверу.",
                 "analysis": None,
                 "suggestions": None
             }
         
-        # Generate response using LLM
-        response = await self.llm_client.generate_chat_response(
-            history=history,
-            context=context
+        # Build prompt from history
+        prompt_parts = []
+        if context:
+            prompt_parts.append(f"Контекст: {context}")
+        
+        for msg in history[-5:]:  # Last 5 messages
+            role = "Пользователь" if msg["role"] == "user" else "Ассистент"
+            prompt_parts.append(f"{role}: {msg['content']}")
+        
+        prompt = "\n".join(prompt_parts)
+        
+        response = await self.client.generate(
+            prompt=prompt,
+            max_tokens=1024,
+            system_prompt="Ты - AI-помощник для развития навыков общения. Помогай пользователям улучшить их коммуникативные навыки."
         )
         
-        return response
+        return {
+            "message": response,
+            "analysis": None,
+            "suggestions": None
+        }
     
     # Fallback methods when AI is not available
     def _get_fallback_plan(self, conversation_type: str, situation: str) -> Dict:
         return {
-            "situation_analysis": "AI анализ временно недоступен",
-            "emotional_assessment": "Требуется подключение AI модуля",
+            "situation_analysis": "AI API временно недоступен",
+            "emotional_assessment": "Требуется подключение к AI серверу",
             "plan": [
                 {
                     "phase": "Открытие",
@@ -259,7 +249,7 @@ class AIService:
     
     def _get_fallback_response(self, personality_type: str) -> Dict:
         return {
-            "message": "AI модуль временно недоступен. Пожалуйста, попробуйте позже.",
+            "message": "AI API временно недоступен. Пожалуйста, проверьте подключение к AI серверу.",
             "user_message_analysis": None,
             "suggestions": None,
             "session_complete": False
@@ -280,13 +270,13 @@ class AIService:
                 "i_messages_percentage": 0,
                 "examples_i": [],
                 "examples_you": [],
-                "recommendation": "AI анализ недоступен"
+                "recommendation": "AI API недоступен"
             },
             "issues": [],
             "strengths": [],
-            "recommendations": ["Подключите AI модуль для полного анализа"],
+            "recommendations": ["Подключитесь к AI серверу для полного анализа"],
             "alternatives": [],
-            "overall_assessment": "Требуется подключение AI модуля для анализа"
+            "overall_assessment": "Требуется подключение к AI серверу для анализа"
         }
     
     def _get_fallback_post_analysis(self) -> Dict:
@@ -295,6 +285,6 @@ class AIService:
             "success_factors": [],
             "improvement_areas": [],
             "lessons_learned": [],
-            "recommendations_for_future": ["Подключите AI модуль для анализа"],
+            "recommendations_for_future": ["Подключитесь к AI серверу для анализа"],
             "skill_progress": {}
         }

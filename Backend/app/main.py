@@ -5,11 +5,7 @@ Main entry point for FastAPI server
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import sys
 import os
-
-# Add AI module to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'AI'))
 
 from app.config import settings
 from app.database import engine, Base
