@@ -26,6 +26,9 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     
+    verification_code = Column(String(10))
+    verification_code_expires = Column(DateTime)
+    
     reset_token = Column(String(500))
     reset_token_expires = Column(DateTime)
     

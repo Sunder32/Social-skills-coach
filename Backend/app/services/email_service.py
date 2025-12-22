@@ -330,6 +330,143 @@ class EmailService:
         """
         
         return self.send_email(to_email, subject, html_content, text_content)
+    
+    def send_verification_email(
+        self,
+        to_email: str,
+        verification_code: str,
+        user_name: str
+    ) -> bool:
+        """
+        Отправка письма с кодом подтверждения email
+        
+        Args:
+            to_email: Email пользователя
+            verification_code: 6-значный код подтверждения
+            user_name: Имя пользователя
+        
+        Returns:
+            True если письмо отправлено успешно
+        """
+        subject = "Подтверждение email - Social Skills Coach"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }}
+                .container {{
+                    background-color: #f4f4f4;
+                    border-radius: 10px;
+                    padding: 30px;
+                }}
+                .header {{
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 20px;
+                    text-align: center;
+                    border-radius: 10px 10px 0 0;
+                    margin: -30px -30px 20px -30px;
+                }}
+                .content {{
+                    background-color: white;
+                    padding: 20px;
+                    border-radius: 5px;
+                }}
+                .code-box {{
+                    background-color: #f0f0f0;
+                    border: 2px dashed #4CAF50;
+                    padding: 20px;
+                    text-align: center;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                }}
+                .code {{
+                    font-size: 32px;
+                    font-weight: bold;
+                    color: #4CAF50;
+                    letter-spacing: 5px;
+                }}
+                .footer {{
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 12px;
+                    color: #666;
+                }}
+                .warning {{
+                    background-color: #fff3cd;
+                    border-left: 4px solid #ffc107;
+                    padding: 10px;
+                    margin: 15px 0;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>✉️ Подтверждение Email</h1>
+                </div>
+                <div class="content">
+                    <p>Здравствуйте, {user_name}!</p>
+                    
+                    <p>Спасибо за регистрацию в <strong>Social Skills Coach</strong>!</p>
+                    
+                    <p>Для завершения регистрации и активации вашего аккаунта, пожалуйста, введите код подтверждения:</p>
+                    
+                    <div class="code-box">
+                        <div class="code">{verification_code}</div>
+                    </div>
+                    
+                    <div class="warning">
+                        <strong>⚠️ Важно:</strong> Код действителен в течение 24 часов.
+                    </div>
+                    
+                    <p>Если вы не регистрировались в нашем приложении, просто проигнорируйте это письмо.</p>
+                </div>
+                
+                <div class="footer">
+                    <p>С уважением,<br>Команда Social Skills Coach</p>
+                    <p style="margin-top: 10px;">
+                        Это автоматическое письмо. Пожалуйста, не отвечайте на него.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        text_content = f"""
+Подтверждение Email - Social Skills Coach
+
+Здравствуйте, {user_name}!
+
+Спасибо за регистрацию в Social Skills Coach!
+
+Для завершения регистрации и активации вашего аккаунта, пожалуйста, введите код подтверждения:
+
+КОД: {verification_code}
+
+⚠️ ВАЖНО: Код действителен в течение 24 часов.
+
+Если вы не регистрировались в нашем приложении, просто проигнорируйте это письмо.
+
+С уважением,
+Команда Social Skills Coach
+
+---
+Это автоматическое письмо. Пожалуйста, не отвечайте на него.
+        """
+        
+        return self.send_email(to_email, subject, html_content, text_content)
 
 
 email_service = EmailService()

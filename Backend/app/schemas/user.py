@@ -82,3 +82,14 @@ class PasswordReset(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class EmailVerification(BaseModel):
+    """Схема для подтверждения email"""
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6)
+
+
+class ResendVerification(BaseModel):
+    """Схема для повторной отправки кода"""
+    email: EmailStr

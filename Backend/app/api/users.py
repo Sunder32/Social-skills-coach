@@ -9,7 +9,8 @@ from typing import List
 from app.database import get_db
 from app.schemas.user import (
     UserCreate, UserLogin, UserResponse, UserProfileUpdate,
-    Token, UserProgress, PasswordResetRequest, PasswordReset, MessageResponse
+    Token, UserProgress, PasswordResetRequest, PasswordReset, MessageResponse,
+    EmailVerification, ResendVerification
 )
 from app.services.user_service import UserService
 
@@ -180,4 +181,43 @@ async def change_password(
     
     return {
         "message": "Пароль успешно изменён."
+    }
+
+
+@router.post("/verify-email", response_model=MessageResponse)
+async def verify_email(
+    verification_data: EmailVerification,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Подтверждение email с помощью кода
+    
+    - **email**: Email пользователя
+    - **code**: 6-значный код из письма
+    """
+    service = UserService(db)
+    
+    await service.verify_email(verification_data.email, verification_data.code)
+    
+    return {
+        "message": "Email успешно подтверждён! Теперь вы можете войти в систему."
+    }
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+async def resend_verification(
+    resend_data: ResendVerification,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Повторная отправка кода подтверждения
+    
+    - **email**: Email пользователя
+    """
+    service = UserService(db)
+    
+    await service.resend_verification_code(resend_data.email)
+    
+    return {
+        "message": "Новый код подтверждения отправлен на ваш email."
     }

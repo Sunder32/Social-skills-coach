@@ -49,21 +49,31 @@ class UserService:
         """Создание нового пользователя"""
         hashed = hash_password(user_data.password)
         
+        verification_code = self._generate_verification_code()
+        
         user = User(
             email=user_data.email,
             hashed_password=hashed,
-            name=user_data.name
+            name=user_data.name,
+            is_verified=False,
+            verification_code=verification_code,
+            verification_code_expires=datetime.utcnow() + timedelta(hours=24)
         )
         
         self.db.add(user)
         await self.db.flush()
         
-        # Create progress record
         progress = Progress(user_id=user.id)
         self.db.add(progress)
         
         await self.db.commit()
         await self.db.refresh(user)
+        
+        email_service.send_verification_email(
+            to_email=user.email,
+            verification_code=verification_code,
+            user_name=user.name
+        )
         
         return user
     
@@ -91,7 +101,12 @@ class UserService:
         if not verify_password(password, user.hashed_password):
             return None
         
-        # Update last login
+        if not user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email не подтверждён. Проверьте почту и введите код подтверждения."
+            )
+        
         user.last_login = datetime.utcnow()
         await self.db.commit()
         
@@ -181,6 +196,99 @@ class UserService:
         if user:
             await self.db.delete(user)
             await self.db.commit()
+    
+    def _generate_verification_code(self) -> str:
+        """Генерация 6-значного кода подтверждения"""
+        import random
+        return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    
+    async def verify_email(self, email: str, code: str) -> bool:
+        """
+        Подтверждение email по коду
+        
+        Args:
+            email: Email пользователя
+            code: Код подтверждения
+        
+        Returns:
+            True если email успешно подтверждён
+        """
+        user = await self.get_by_email(email)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Пользователь не найден"
+            )
+        
+        if user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email уже подтверждён"
+            )
+        
+        if not user.verification_code or not user.verification_code_expires:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Код подтверждения не найден"
+            )
+        
+        if user.verification_code_expires < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Срок действия кода истёк. Запросите новый код."
+            )
+        
+        if user.verification_code != code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Неверный код подтверждения"
+            )
+        
+        user.is_verified = True
+        user.verification_code = None
+        user.verification_code_expires = None
+        
+        await self.db.commit()
+        
+        return True
+    
+    async def resend_verification_code(self, email: str) -> bool:
+        """
+        Повторная отправка кода подтверждения
+        
+        Args:
+            email: Email пользователя
+        
+        Returns:
+            True если код отправлен успешно
+        """
+        user = await self.get_by_email(email)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Пользователь не найден"
+            )
+        
+        if user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email уже подтверждён"
+            )
+        
+        verification_code = self._generate_verification_code()
+        
+        user.verification_code = verification_code
+        user.verification_code_expires = datetime.utcnow() + timedelta(hours=24)
+        
+        await self.db.commit()
+        
+        return email_service.send_verification_email(
+            to_email=user.email,
+            verification_code=verification_code,
+            user_name=user.name
+        )
     
     async def request_password_reset(self, email: str) -> bool:
         """
