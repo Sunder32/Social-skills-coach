@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -19,9 +20,11 @@ import {
 import {
   Save as SaveIcon,
   RestartAlt as ResetIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 
 function SettingsPage() {
+  const navigate = useNavigate();
   const [settings, setSettings] = useState({
     apiUrl: 'http://localhost:8000',
     theme: 'dark',
@@ -55,9 +58,13 @@ function SettingsPage() {
     });
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/auth');
+  };
+
   return (
     <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
-      {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700} gutterBottom>
           Настройки
@@ -68,7 +75,6 @@ function SettingsPage() {
       </Box>
 
       <Box sx={{ maxWidth: 800 }}>
-        {/* Connection settings */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -87,7 +93,6 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Appearance */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -135,7 +140,6 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Notifications */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -167,7 +171,6 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Data */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -187,7 +190,6 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Actions */}
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="contained"
@@ -204,6 +206,26 @@ function SettingsPage() {
             Сбросить
           </Button>
         </Box>
+
+        <Card sx={{ mt: 3, border: '1px solid', borderColor: 'error.main' }}>
+          <CardContent>
+            <Typography variant="h6" fontWeight={600} gutterBottom>
+              Выход из аккаунта
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Выйдите из своего аккаунта. Вы всегда можете войти снова.
+            </Typography>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+            >
+              Выйти
+            </Button>
+          </CardContent>
+        </Card>
       </Box>
 
       <Snackbar

@@ -1,8 +1,8 @@
 import { createTheme } from '@mui/material/styles';
 
-const theme = createTheme({
+export const getTheme = (mode) => createTheme({
   palette: {
-    mode: 'light',
+    mode: mode,
     primary: {
       main: '#df2531',
       light: 'rgba(223, 37, 49, 0.45)',
@@ -14,11 +14,17 @@ const theme = createTheme({
       light: 'rgba(223, 37, 49, 0.45)',
       dark: '#df2531',
     },
-    background: {
+    background: mode === 'dark' ? {
+      default: '#0a0a0a',
+      paper: '#1a1a1a',
+    } : {
       default: '#ffffff',
       paper: '#f5f5f5',
     },
-    text: {
+    text: mode === 'dark' ? {
+      primary: '#ffffff',
+      secondary: '#b0b0b0',
+    } : {
       primary: '#000000',
       secondary: '#666666',
     },
@@ -31,7 +37,7 @@ const theme = createTheme({
     error: {
       main: '#df2531',
     },
-    divider: 'rgba(0, 0, 0, 0.12)',
+    divider: mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
   },
   typography: {
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
@@ -157,7 +163,7 @@ const theme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: '#000000',
+          backgroundColor: mode === 'dark' ? '#2a2a2a' : '#000000',
           fontSize: '0.8rem',
         },
       },
@@ -165,4 +171,4 @@ const theme = createTheme({
   },
 });
 
-export default theme;
+export default getTheme;

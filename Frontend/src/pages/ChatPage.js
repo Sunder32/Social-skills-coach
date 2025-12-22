@@ -23,12 +23,10 @@ function ChatPage() {
     setCurrentChat,
   } = useChatStore();
 
-  // Load chats on mount
   useEffect(() => {
     fetchChats();
   }, []);
 
-  // Load specific chat if ID in URL
   useEffect(() => {
     if (chatId) {
       fetchChat(chatId);
@@ -56,11 +54,9 @@ function ChatPage() {
 
   const handleSendMessage = async (content) => {
     if (!currentChat) {
-      // Create new chat if none selected
       const result = await createChat();
       if (result.success) {
         navigate(`/chat/${result.chat.id}`);
-        // Wait a bit then send message
         setTimeout(() => {
           sendMessage(content);
         }, 100);
@@ -72,7 +68,6 @@ function ChatPage() {
 
   return (
     <Box sx={{ display: 'flex', height: '100%' }}>
-      {/* Chat list sidebar */}
       <Paper
         elevation={0}
         sx={{
@@ -93,7 +88,6 @@ function ChatPage() {
         />
       </Paper>
 
-      {/* Chat window */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <ChatWindow
           messages={messages}

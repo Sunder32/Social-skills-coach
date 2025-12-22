@@ -64,7 +64,6 @@ function LibraryPage() {
 
   return (
     <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
-      {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700} gutterBottom>
           Библиотека знаний
@@ -74,7 +73,6 @@ function LibraryPage() {
         </Typography>
       </Box>
 
-      {/* Search */}
       <TextField
         fullWidth
         placeholder="Поиск техник и материалов..."
@@ -90,7 +88,6 @@ function LibraryPage() {
         sx={{ mb: 4 }}
       />
 
-      {/* Search results */}
       {searchQuery.trim() && (
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" gutterBottom>
@@ -123,7 +120,6 @@ function LibraryPage() {
       )}
 
       <Grid container spacing={4}>
-        {/* Topics sidebar */}
         <Grid item xs={12} md={4}>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <BookIcon /> Темы
@@ -156,7 +152,6 @@ function LibraryPage() {
           </Card>
         </Grid>
 
-        {/* Techniques */}
         <Grid item xs={12} md={8}>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <TechniqueIcon /> 
