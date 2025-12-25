@@ -177,7 +177,7 @@ function ForgotPasswordPage() {
           </Box>
 
           <Typography variant="h4" fontWeight={700} gutterBottom>
-            Forgot password?
+            Забыли пароль?
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             {success
@@ -220,7 +220,7 @@ function ForgotPasswordPage() {
                   <TextField
                     fullWidth
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="Введите ваш email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
