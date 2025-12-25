@@ -190,8 +190,8 @@ function AuthPage() {
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             {isLogin
-              ? 'Welcome back! Please enter your details.'
-              : 'Create your account to get started.'}
+              ? 'С возвращением! Пожалуйста, введите ваши данные.'
+              : 'Создайте аккаунт, чтобы начать.'}
           </Typography>
 
           {error && (
@@ -205,11 +205,11 @@ function AuthPage() {
               {!isLogin && (
                 <Box>
                   <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
-                    Name
+                    Имя
                   </Typography>
                   <TextField
                     fullWidth
-                    placeholder="Enter your name"
+                    placeholder="Введите ваше имя"
                     value={formData.name}
                     onChange={handleChange('name')}
                     required={!isLogin}
@@ -224,7 +224,7 @@ function AuthPage() {
                 <TextField
                   fullWidth
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="Введите ваш email"
                   value={formData.email}
                   onChange={handleChange('email')}
                   required
@@ -260,7 +260,7 @@ function AuthPage() {
               {!isLogin && (
                 <Box>
                   <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
-                    Confirm Password
+                    Подтвердите пароль
                   </Typography>
                   <TextField
                     fullWidth
@@ -280,7 +280,7 @@ function AuthPage() {
                     onClick={() => navigate('/forgot-password')}
                     sx={{ textTransform: 'none', fontWeight: 500, color: 'primary.main' }}
                   >
-                    Forgot password
+                    Забыли пароль?
                   </Button>
                 </Box>
               )}
@@ -299,7 +299,7 @@ function AuthPage() {
                   mt: 1,
                 }}
               >
-                {isLogin ? 'Sign in' : 'Sign up'}
+                {isLogin ? 'Войти' : 'Зарегистрироваться'}
               </Button>
 
               <Typography
@@ -308,7 +308,7 @@ function AuthPage() {
                 color="text.secondary"
                 sx={{ mt: 1 }}
               >
-                {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+                {isLogin ? "Нет аккаунта?" : 'Уже есть аккаунт?'}{' '}
                 <Button
                   variant="text"
                   onClick={toggleMode}
@@ -323,7 +323,7 @@ function AuthPage() {
                     },
                   }}
                 >
-                  {isLogin ? 'Sign up' : 'Log in'}
+                  {isLogin ? 'Зарегистрироваться' : 'Войти'}
                 </Button>
               </Typography>
 
@@ -337,7 +337,7 @@ function AuthPage() {
                   mt: 2,
                 }}
               >
-                Skip Auth (Dev Mode)
+                Пропустить авторизацию (Режим разработки)
               </Button>
             </Box>
           </form>

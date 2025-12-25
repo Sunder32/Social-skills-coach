@@ -12,14 +12,14 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 700,
     frame: false,
+    transparent: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     },
-    icon: path.join(__dirname, '../assets/icon.png'),
-    title: 'Тренер социальных навыков',
-    backgroundColor: '#ffffff',
+    icon: path.join(__dirname, '../assets/icon.ico'),
+    title: 'Social Coach',
     show: false
   });
 

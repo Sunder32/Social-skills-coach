@@ -23,7 +23,6 @@ import {
   FitnessCenter as ExercisesIcon,
   TrendingUp as ProgressIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon,
   Menu as MenuIcon,
   ChevronLeft as ChevronLeftIcon,
   Psychology as PsychologyIcon,
@@ -198,17 +197,39 @@ function Layout({ children }) {
             alignItems: 'center',
             justifyContent: drawerOpen ? 'space-between' : 'center',
             p: 2,
-            minHeight: 64,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
           }}
         >
           {drawerOpen && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <PsychologyIcon sx={{ color: 'primary.main', fontSize: 32 }} />
+              <Box 
+                sx={{ 
+                  width: 24,
+                  height: 24,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Box
+                  component="img"
+                  src="/assets/cors.png"
+                  alt="Logo"
+                  sx={{
+                    width: 52,
+                    height: 52,
+                    objectFit: 'contain',
+                  }}
+                />
+              </Box>
               <Typography
                 variant="h6"
                 sx={{
                   fontWeight: 700,
                   color: 'primary.main',
+                  lineHeight: '24px',
                 }}
               >
                 SOCIAL COACH
@@ -219,8 +240,6 @@ function Layout({ children }) {
             {drawerOpen ? <ChevronLeftIcon /> : <MenuIcon />}
           </IconButton>
         </Box>
-
-        <Divider sx={{ opacity: 0.5 }} />
 
         <List sx={{ px: 1, py: 2, flex: 1 }}>
           {menuItems.map((item) => (
@@ -263,8 +282,6 @@ function Layout({ children }) {
           ))}
         </List>
 
-        <Divider sx={{ opacity: 0.5 }} />
-
         <List sx={{ px: 1, py: 1 }}>
           <Tooltip title={!drawerOpen ? 'Тема' : ''} placement="right">
             <ListItemButton
@@ -305,34 +322,11 @@ function Layout({ children }) {
               )}
             </ListItemButton>
           </Tooltip>
-
-          <Tooltip title={!drawerOpen ? 'Настройки' : ''} placement="right">
-            <ListItemButton
-              selected={location.pathname === '/settings'}
-              onClick={() => navigate('/settings')}
-              sx={{
-                minHeight: 48,
-                justifyContent: drawerOpen ? 'initial' : 'center',
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: 0,
-                  mr: drawerOpen ? 2 : 'auto',
-                  justifyContent: 'center',
-                }}
-              >
-                <SettingsIcon />
-              </ListItemIcon>
-              {drawerOpen && <ListItemText primary="Настройки" />}
-            </ListItemButton>
-          </Tooltip>
         </List>
 
         <Box
           sx={{
             p: 2,
-            borderTop: `1px solid ${theme.palette.divider}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: drawerOpen ? 'flex-start' : 'center',
