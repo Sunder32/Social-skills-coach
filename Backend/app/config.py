@@ -24,12 +24,23 @@ class Settings(BaseSettings):
     BACKEND_PORT: int = 8000
     
 
-    DB_TYPE: str = "sqlite"  
+    DB_TYPE: str = "sqlite"  # sqlite, mysql, or postgres
+    
+    # PostgreSQL settings
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DATABASE: str = "social_skills_coach"
+    
+    # MySQL settings
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str = ""
     MYSQL_DATABASE: str = "social_skills_coach"
+    
+    # SQLite settings
     SQLITE_PATH: str = str(BASE_DIR / "data" / "social_skills.db")
     
 
@@ -56,13 +67,19 @@ class Settings(BaseSettings):
     def DATABASE_URL(self) -> str:
         if self.DB_TYPE == "sqlite":
             return f"sqlite+aiosqlite:///{self.SQLITE_PATH}"
-        return f"mysql+aiomysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
+        elif self.DB_TYPE == "postgres":
+            return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DATABASE}"
+        else:  # mysql
+            return f"mysql+aiomysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
     
     @property
     def SYNC_DATABASE_URL(self) -> str:
         if self.DB_TYPE == "sqlite":
             return f"sqlite:///{self.SQLITE_PATH}"
-        return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
+        elif self.DB_TYPE == "postgres":
+            return f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DATABASE}"
+        else:  # mysql
+            return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
     
     class Config:
         env_file = ".env"

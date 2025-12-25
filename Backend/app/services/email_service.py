@@ -70,15 +70,24 @@ class EmailService:
                 logger.warning("SMTP настройки не заданы. Email не отправлен.")
                 logger.info(f"[РЕЖИМ ОТЛАДКИ] Email для {to_email}:")
                 logger.info(f"Тема: {subject}")
-                logger.info(f"Содержимое: {text_content or html_content}")
+                logger.info(f"Содержимое: {text_content or html_content[:200] if html_content else 'No content'}")
                 return True
             
+            logger.info(f"Попытка отправки email на {to_email} через {self.smtp_host}:{self.smtp_port}")
             message = self._create_message(to_email, subject, html_content, text_content)
             
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(message)
+            # Попробуем SSL для mail.ru (порт 465) или TLS (порт 587)
+            if self.smtp_port == 465:
+                import ssl
+                context = ssl.create_default_context()
+                with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, context=context) as server:
+                    server.login(self.smtp_user, self.smtp_password)
+                    server.send_message(message)
+            else:
+                with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                    server.starttls()
+                    server.login(self.smtp_user, self.smtp_password)
+                    server.send_message(message)
             
             logger.info(f"Email успешно отправлен на {to_email}")
             return True
