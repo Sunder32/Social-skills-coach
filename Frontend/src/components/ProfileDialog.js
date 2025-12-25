@@ -16,6 +16,7 @@ import {
   PhotoCamera as PhotoCameraIcon,
   Close as CloseIcon,
   Save as SaveIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -264,20 +265,36 @@ function ProfileDialog({ open, onClose }) {
           borderTop: '1px solid',
           borderColor: 'divider',
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           gap: 2,
         }}
       >
-        <Button variant="outlined" onClick={onClose}>
-          Отмена
-        </Button>
         <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          onClick={handleSave}
+          variant="outlined"
+          color="error"
+          startIcon={<LogoutIcon />}
+          onClick={() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userAvatar');
+            localStorage.removeItem('userBio');
+            window.location.href = '/auth';
+          }}
         >
-          Сохранить
+          Выйти
         </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button variant="outlined" onClick={onClose}>
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSave}
+          >
+            Сохранить
+          </Button>
+        </Box>
       </Box>
     </Dialog>
   );

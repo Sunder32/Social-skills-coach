@@ -8,7 +8,6 @@ import ChatPage from './pages/ChatPage';
 import LibraryPage from './pages/LibraryPage';
 import ExercisesPage from './pages/ExercisesPage';
 import ProgressPage from './pages/ProgressPage';
-import SettingsPage from './pages/SettingsPage';
 
 function App() {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -30,7 +29,6 @@ function App() {
                   <Route path="/library" element={<LibraryPage />} />
                   <Route path="/exercises" element={<ExercisesPage />} />
                   <Route path="/progress" element={<ProgressPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
                 </Routes>
               </Layout>
             </Box>
