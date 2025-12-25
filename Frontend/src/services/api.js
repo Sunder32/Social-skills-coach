@@ -36,6 +36,10 @@ export const usersApi = {
   register: (data) => api.post('/api/users/register', data),
   login: (data) => api.post('/api/users/login', data),
   getProgress: () => api.get('/api/users/me/progress'),
+  verifyEmail: (data) => api.post('/api/users/verify-email', data),
+  resendVerification: (data) => api.post('/api/users/resend-verification', data),
+  forgotPassword: (data) => api.post('/api/users/forgot-password', data),
+  resetPassword: (data) => api.post('/api/users/reset-password', data),
 };
 
 export const chatsApi = {

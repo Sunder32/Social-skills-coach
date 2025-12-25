@@ -4,6 +4,7 @@ import { Box } from '@mui/material';
 import Layout from './components/Layout';
 import AuthPage from './pages/AuthPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import ChatPage from './pages/ChatPage';
 import LibraryPage from './pages/LibraryPage';
 import ExercisesPage from './pages/ExercisesPage';
@@ -16,6 +17,7 @@ function App() {
     <Routes>
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/*"
         element={

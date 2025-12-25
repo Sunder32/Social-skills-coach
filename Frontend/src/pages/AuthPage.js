@@ -7,11 +7,14 @@ import {
   IconButton,
   InputAdornment,
   Alert,
+  Tooltip,
 } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
   Psychology as BrainIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usersApi } from '../services/api';
@@ -22,6 +25,13 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [savedPassword, setSavedPassword] = useState('');
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem('darkMode') === 'true' || false
+  );
   
   const [formData, setFormData] = useState({
     email: '',
@@ -29,6 +39,13 @@ function AuthPage() {
     confirmPassword: '',
     name: '',
   });
+
+  const handleToggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('darkMode', newMode.toString());
+    window.location.reload();
+  };
 
   const handleChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
@@ -46,24 +63,71 @@ function AuthPage() {
           email: formData.email,
           password: formData.password,
         });
-        localStorage.setItem('token', response.data.token);
-        navigate('/chat');
+        localStorage.setItem('token', response.data.access_token);
+        window.location.href = '/chat';
       } else {
         if (formData.password !== formData.confirmPassword) {
           setError('Пароли не совпадают');
           setIsLoading(false);
           return;
         }
-        const response = await usersApi.register({
+        await usersApi.register({
           email: formData.email,
           password: formData.password,
           name: formData.name,
         });
-        localStorage.setItem('token', response.data.token);
-        navigate('/chat');
+        setRegisteredEmail(formData.email);
+        setSavedPassword(formData.password);
+        setShowVerification(true);
+        setError('');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Произошла ошибка');
+      const errorMessage = err.response?.data?.detail || 'Произошла ошибка';
+      if (errorMessage.includes('Email не подтверждён') || errorMessage.includes('not verified')) {
+        setRegisteredEmail(formData.email);
+        setSavedPassword(formData.password);
+        setShowVerification(true);
+        setError('Email не подтверждён. Проверьте почту и введите код подтверждения.');
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerification = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      await usersApi.verifyEmail({
+        email: registeredEmail,
+        code: verificationCode,
+      });
+      
+      const loginResponse = await usersApi.login({
+        email: registeredEmail,
+        password: savedPassword,
+      });
+      localStorage.setItem('token', loginResponse.data.access_token);
+      window.location.href = '/chat';
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Неверный код подтверждения');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setIsLoading(true);
+    try {
+      await usersApi.resendVerification({ email: registeredEmail });
+      setError('');
+      alert('Новый код отправлен на вашу почту');
+    } catch (err) {
+      setError('Ошибка при отправке кода');
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +141,9 @@ function AuthPage() {
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError('');
+    setShowVerification(false);
+    setVerificationCode('');
+    setSavedPassword('');
     setFormData({
       email: '',
       password: '',
@@ -109,10 +176,25 @@ function AuthPage() {
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           px: 1,
         }}
       >
+        <Box sx={{ WebkitAppRegion: 'no-drag' }}>
+          <Tooltip title={darkMode ? 'Светлая тема' : 'Тёмная тема'}>
+            <IconButton
+              size="small"
+              onClick={handleToggleDarkMode}
+              sx={{
+                width: 32,
+                height: 24,
+                borderRadius: 0,
+              }}
+            >
+              {darkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        </Box>
         <Box
           sx={{
             display: 'flex',
@@ -185,14 +267,102 @@ function AuthPage() {
             </Typography>
           </Box>
 
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            {isLogin ? 'Log in' : 'Sign up'}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            {isLogin
-              ? 'С возвращением! Пожалуйста, введите ваши данные.'
-              : 'Создайте аккаунт, чтобы начать.'}
-          </Typography>
+          {showVerification ? (
+            <>
+              <Typography variant="h4" fontWeight={700} gutterBottom>
+                Подтверждение Email
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                Мы отправили 6-значный код на <strong>{registeredEmail}</strong>. 
+                Проверьте свою почту и введите код подтверждения.
+              </Typography>
+
+              {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  {error}
+                </Alert>
+              )}
+
+              <form onSubmit={handleVerification}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                  <Box>
+                    <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+                      Код подтверждения
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      placeholder="Введите 6-значный код"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      required
+                      inputProps={{ maxLength: 6 }}
+                      sx={{
+                        '& input': {
+                          fontSize: '1.5rem',
+                          letterSpacing: '0.5rem',
+                          textAlign: 'center',
+                        },
+                      }}
+                    />
+                  </Box>
+
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    fullWidth
+                    disabled={isLoading || verificationCode.length !== 6}
+                    sx={{
+                      py: 1.5,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      mt: 1,
+                    }}
+                  >
+                    Подтвердить
+                  </Button>
+
+                  <Button
+                    variant="text"
+                    onClick={handleResendCode}
+                    disabled={isLoading}
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Отправить код повторно
+                  </Button>
+
+                  <Button
+                    variant="text"
+                    onClick={() => {
+                      setShowVerification(false);
+                      setVerificationCode('');
+                      setError('');
+                    }}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.875rem',
+                      color: 'text.secondary',
+                    }}
+                  >
+                    Вернуться к регистрации
+                  </Button>
+                </Box>
+              </form>
+            </>
+          ) : (
+            <>
+              <Typography variant="h4" fontWeight={700} gutterBottom>
+                {isLogin ? 'Log in' : 'Sign up'}
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                {isLogin
+                  ? 'С возвращением! Пожалуйста, введите ваши данные.'
+                  : 'Создайте аккаунт, чтобы начать.'}
+              </Typography>
 
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
@@ -341,6 +511,8 @@ function AuthPage() {
               </Button>
             </Box>
           </form>
+          </>
+          )}
         </Box>
       </Box>
     </Box>

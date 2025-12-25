@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -6,26 +6,39 @@ import {
   Typography,
   IconButton,
   Alert,
+  InputAdornment,
   Tooltip,
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon,
   Psychology as BrainIcon,
+  Visibility,
+  VisibilityOff,
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usersApi } from '../services/api';
 
-function ForgotPasswordPage() {
+function ResetPasswordPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem('darkMode') === 'true' || false
   );
+
+  useEffect(() => {
+    if (!token) {
+      setError('Недействительная или отсутствующая ссылка для сброса пароля.');
+    }
+  }, [token]);
 
   const handleToggleDarkMode = () => {
     const newMode = !darkMode;
@@ -37,13 +50,27 @@ function ForgotPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Пароли не совпадают');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Пароль должен содержать минимум 8 символов');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await usersApi.forgotPassword({ email });
+      await usersApi.resetPassword({ 
+        token: token,
+        new_password: password 
+      });
       setSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Произошла ошибка. Попробуйте позже.');
+      setError(err.response?.data?.detail || 'Произошла ошибка. Возможно, ссылка устарела.');
     } finally {
       setIsLoading(false);
     }
@@ -157,18 +184,6 @@ function ForgotPasswordPage() {
         }}
       >
         <Box sx={{ width: '100%', maxWidth: 440 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/auth')}
-            sx={{
-              mb: 3,
-              textTransform: 'none',
-              color: 'text.secondary',
-            }}
-          >
-            Назад к входу
-          </Button>
-
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 4 }}>
             <BrainIcon sx={{ fontSize: 40, color: 'primary.main' }} />
             <Typography variant="h5" fontWeight={700} color="primary.main">
@@ -177,18 +192,18 @@ function ForgotPasswordPage() {
           </Box>
 
           <Typography variant="h4" fontWeight={700} gutterBottom>
-            Forgot password?
+            Новый пароль
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             {success
-              ? 'Мы отправили инструкции по сбросу пароля на вашу почту.'
-              : 'Введите ваш email, и мы отправим инструкции по восстановлению пароля.'}
+              ? 'Ваш пароль успешно изменён!'
+              : 'Введите новый пароль для вашего аккаунта.'}
           </Typography>
 
           {success ? (
             <Box>
               <Alert severity="success" sx={{ mb: 3 }}>
-                Письмо успешно отправлено! Проверьте свою почту.
+                Пароль успешно изменён! Теперь вы можете войти с новым паролем.
               </Alert>
               <Button
                 variant="contained"
@@ -201,7 +216,7 @@ function ForgotPasswordPage() {
                   textTransform: 'none',
                 }}
               >
-                Вернуться к входу
+                Перейти к входу
               </Button>
             </Box>
           ) : (
@@ -215,15 +230,43 @@ function ForgotPasswordPage() {
 
                 <Box>
                   <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
-                    Email
+                    Новый пароль
                   </Typography>
                   <TextField
                     fullWidth
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Минимум 8 символов"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={!token}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+                    Подтвердите пароль
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Повторите пароль"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={!token}
                   />
                 </Box>
 
@@ -232,7 +275,7 @@ function ForgotPasswordPage() {
                   variant="contained"
                   size="large"
                   fullWidth
-                  disabled={isLoading}
+                  disabled={isLoading || !token}
                   sx={{
                     py: 1.5,
                     fontSize: '1rem',
@@ -241,7 +284,18 @@ function ForgotPasswordPage() {
                     mt: 1,
                   }}
                 >
-                  {isLoading ? 'Отправка...' : 'Отправить инструкции'}
+                  {isLoading ? 'Сохранение...' : 'Сохранить пароль'}
+                </Button>
+
+                <Button
+                  variant="text"
+                  onClick={() => navigate('/auth')}
+                  sx={{
+                    textTransform: 'none',
+                    color: 'text.secondary',
+                  }}
+                >
+                  Вернуться к входу
                 </Button>
               </Box>
             </form>
@@ -252,4 +306,4 @@ function ForgotPasswordPage() {
   );
 }
 
-export default ForgotPasswordPage;
+export default ResetPasswordPage;
