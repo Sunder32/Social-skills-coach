@@ -6,9 +6,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPlatform: () => ipcRenderer.invoke('get-platform'),
   
   // Window controls
-  minimize: () => ipcRenderer.send('window-minimize'),
-  maximize: () => ipcRenderer.send('window-maximize'),
-  close: () => ipcRenderer.send('window-close'),
+  minimize: () => ipcRenderer.send('minimize-window'),
+  maximize: () => ipcRenderer.send('maximize-window'),
+  close: () => ipcRenderer.send('close-window'),
   
   // Add more IPC methods as needed
   onMessage: (callback) => ipcRenderer.on('message', callback),

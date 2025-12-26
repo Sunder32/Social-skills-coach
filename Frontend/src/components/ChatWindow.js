@@ -7,10 +7,13 @@ import {
   Typography,
   CircularProgress,
   Tooltip,
+  Chip,
 } from '@mui/material';
 import {
   Send as SendIcon,
   AttachFile as AttachIcon,
+  Close as CloseIcon,
+  InsertDriveFile as FileIcon,
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 
@@ -108,6 +111,8 @@ function TypingIndicator() {
 
 function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
   const [inputValue, setInputValue] = useState('');
+  const [attachedFile, setAttachedFile] = useState(null);
+  const [fileContent, setFileContent] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -117,9 +122,19 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
   }, [messages, isSending]);
 
   const handleSend = () => {
-    if (inputValue.trim() && !isSending) {
-      onSendMessage(inputValue.trim());
+    if ((inputValue.trim() || fileContent) && !isSending) {
+      let messageContent = inputValue.trim();
+      
+      // Если есть прикрепленный файл, добавляем его содержимое
+      if (fileContent && attachedFile) {
+        const fileHeader = `📎 Файл: ${attachedFile.name}\n\`\`\`\n${fileContent}\n\`\`\`\n\n`;
+        messageContent = fileHeader + messageContent;
+      }
+      
+      onSendMessage(messageContent);
       setInputValue('');
+      setAttachedFile(null);
+      setFileContent('');
     }
   };
 
@@ -137,10 +152,34 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // TODO: Implement file upload
-      alert(`Функция загрузки файлов будет доступна в следующей версии.\nВыбран файл: ${file.name}`);
-      e.target.value = ''; // Reset input
+      // Проверка размера файла (макс 1MB)
+      if (file.size > 1024 * 1024) {
+        alert('Файл слишком большой. Максимальный размер: 1 МБ');
+        e.target.value = '';
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target.result;
+        // Ограничиваем содержимое до 50000 символов
+        const truncatedContent = content.length > 50000 
+          ? content.substring(0, 50000) + '\n... (файл обрезан, показано 50000 символов)'
+          : content;
+        setFileContent(truncatedContent);
+        setAttachedFile(file);
+      };
+      reader.onerror = () => {
+        alert('Ошибка при чтении файла');
+      };
+      reader.readAsText(file, 'UTF-8');
+      e.target.value = '';
     }
+  };
+
+  const handleRemoveFile = () => {
+    setAttachedFile(null);
+    setFileContent('');
   };
 
   return (
@@ -215,6 +254,20 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
           backgroundColor: 'background.default',
         }}
       >
+        {/* Отображение прикрепленного файла */}
+        {attachedFile && (
+          <Box sx={{ mb: 1, px: 1 }}>
+            <Chip
+              icon={<FileIcon />}
+              label={`${attachedFile.name} (${(attachedFile.size / 1024).toFixed(1)} КБ)`}
+              onDelete={handleRemoveFile}
+              deleteIcon={<CloseIcon />}
+              color="primary"
+              variant="outlined"
+              sx={{ maxWidth: '100%' }}
+            />
+          </Box>
+        )}
         <Paper
           elevation={0}
           sx={{
@@ -237,7 +290,7 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
           <Tooltip title="Прикрепить файл">
             <IconButton 
               size="small" 
-              sx={{ color: 'text.secondary' }}
+              sx={{ color: attachedFile ? 'primary.main' : 'text.secondary' }}
               onClick={handleFileClick}
               disabled={isSending}
             >
@@ -250,7 +303,7 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
             fullWidth
             multiline
             maxRows={4}
-            placeholder="Напишите сообщение..."
+            placeholder={attachedFile ? "Добавьте комментарий к файлу..." : "Напишите сообщение..."}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -271,7 +324,7 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
             <span>
               <IconButton
                 onClick={handleSend}
-                disabled={!inputValue.trim() || isSending}
+                disabled={(!inputValue.trim() && !attachedFile) || isSending}
                 sx={{
                   backgroundColor: 'primary.main',
                   color: 'white',
