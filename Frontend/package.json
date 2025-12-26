@@ -62,7 +62,10 @@
       "node_modules/**/*",
       "package.json"
     ],
-    "extraResources": [
+    "asarUnpack": [
+      "backend/**/*"
+    ],
+    "extraFiles": [
       {
         "from": "../Backend/dist/backend.exe",
         "to": "backend/backend.exe"

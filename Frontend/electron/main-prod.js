@@ -23,14 +23,20 @@ function log(message) {
 function startBackend() {
   log(`isDev: ${isDev}, isPackaged: ${app.isPackaged}`);
   log(`resourcesPath: ${process.resourcesPath}`);
+  log(`execPath: ${path.dirname(process.execPath)}`);
   
   if (isDev) {
     log('Development mode - backend should be started manually');
     return Promise.resolve();
   }
 
-  // In production, start the bundled backend
-  const backendPath = path.join(process.resourcesPath, 'backend', 'backend.exe');
+  // In production, backend is in extraFiles (same folder as exe or in backend subfolder)
+  let backendPath = path.join(path.dirname(process.execPath), 'backend', 'backend.exe');
+  
+  // Fallback to resources path
+  if (!fs.existsSync(backendPath)) {
+    backendPath = path.join(process.resourcesPath, 'backend', 'backend.exe');
+  }
   
   log(`Starting backend from: ${backendPath}`);
   log(`Backend exists: ${fs.existsSync(backendPath)}`);
