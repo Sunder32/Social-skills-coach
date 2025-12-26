@@ -28,6 +28,9 @@ pip-delete-this-directory.txt
 dist/
 build/
 *.egg-info/
+*.rar
+*.zip
+*.exe
 *.egg
 .eggs/
 
