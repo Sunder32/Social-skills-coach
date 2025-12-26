@@ -215,7 +215,7 @@ function Layout({ children }) {
               >
                 <Box
                   component="img"
-                  src="/assets/cors.png"
+                  src="./assets/cors.png"
                   alt="Logo"
                   sx={{
                     width: 52,

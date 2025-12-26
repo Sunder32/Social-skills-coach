@@ -64,7 +64,8 @@ function AuthPage() {
           password: formData.password,
         });
         localStorage.setItem('token', response.data.access_token);
-        window.location.href = '/chat';
+        window.location.hash = '#/chat';
+        window.location.reload();
       } else {
         if (formData.password !== formData.confirmPassword) {
           setError('Пароли не совпадают');
@@ -112,7 +113,8 @@ function AuthPage() {
         password: savedPassword,
       });
       localStorage.setItem('token', loginResponse.data.access_token);
-      window.location.href = '/chat';
+      window.location.hash = '#/chat';
+      window.location.reload();
     } catch (err) {
       setError(err.response?.data?.detail || 'Неверный код подтверждения');
     } finally {

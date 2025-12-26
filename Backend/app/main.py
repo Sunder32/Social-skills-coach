@@ -16,13 +16,13 @@ from app.api.router import api_router
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
-    print(f"🚀 Starting {settings.APP_NAME}...")
+    print(f"[INFO] Starting {settings.APP_NAME}...")
     
     # Create database tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    print("✅ Database tables created")
+    print("[INFO] Database tables created")
     
     # Create default user for development
     if settings.APP_ENV == "development":
@@ -51,14 +51,14 @@ async def lifespan(app: FastAPI):
                 session.add(progress)
                 
                 await session.commit()
-                print("✅ Default development user created")
+                print("[INFO] Default development user created")
     
-    print(f"📡 API running at http://{settings.BACKEND_HOST}:{settings.BACKEND_PORT}")
+    print(f"[INFO] API running at http://{settings.BACKEND_HOST}:{settings.BACKEND_PORT}")
     
     yield
     
     # Shutdown
-    print("👋 Shutting down...")
+    print("[INFO] Shutting down...")
     await engine.dispose()
 
 

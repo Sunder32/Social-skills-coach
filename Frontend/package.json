@@ -2,13 +2,18 @@
   "name": "social-skills-coach",
   "version": "1.0.0",
   "description": "Тренер социальных навыков - Desktop приложение",
-  "main": "electron/main.js",
+  "author": "Social Skills Coach Team",
+  "homepage": ".",
+  "main": "build/electron.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "electron": "electron .",
     "electron:dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:build": "npm run build && electron-builder",
+    "electron:pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -46,16 +51,46 @@
   "build": {
     "appId": "com.socialskillscoach.app",
     "productName": "Social Skills Coach",
+    "extends": null,
+    "asar": true,
     "directories": {
-      "buildResources": "assets"
+      "buildResources": "assets",
+      "output": "dist"
     },
     "files": [
       "build/**/*",
-      "electron/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../Backend/dist/backend.exe",
+        "to": "backend/backend.exe"
+      },
+      {
+        "from": "../Backend/dist/production.env",
+        "to": "backend/production.env"
+      }
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Social Skills Coach"
     },
     "mac": {
       "target": "dmg"

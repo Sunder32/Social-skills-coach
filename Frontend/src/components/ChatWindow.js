@@ -110,6 +110,7 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -126,6 +127,19 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // TODO: Implement file upload
+      alert(`Функция загрузки файлов будет доступна в следующей версии.\nВыбран файл: ${file.name}`);
+      e.target.value = ''; // Reset input
     }
   };
 
@@ -213,8 +227,20 @@ function ChatWindow({ messages, onSendMessage, isLoading, isSending }) {
             border: '1px solid rgba(0,0,0,0.12)',
           }}
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            hidden
+            onChange={handleFileChange}
+            accept=".txt,.md,.json,.csv,.xml,.yaml,.yml,.ini,.cfg,.py,.js,.html,.css,.log"
+          />
           <Tooltip title="Прикрепить файл">
-            <IconButton size="small" sx={{ color: 'text.secondary' }}>
+            <IconButton 
+              size="small" 
+              sx={{ color: 'text.secondary' }}
+              onClick={handleFileClick}
+              disabled={isSending}
+            >
               <AttachIcon />
             </IconButton>
           </Tooltip>

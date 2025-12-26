@@ -278,7 +278,8 @@ function ProfileDialog({ open, onClose }) {
             localStorage.removeItem('userName');
             localStorage.removeItem('userAvatar');
             localStorage.removeItem('userBio');
-            window.location.href = '/auth';
+            window.location.hash = '#/auth';
+            window.location.reload();
           }}
         >
           Выйти

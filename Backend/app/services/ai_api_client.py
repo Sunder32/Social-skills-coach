@@ -1,24 +1,26 @@
 """
 AI API Client - HTTP client for external AI API
-Connects to DASA AI API Server
+Connects to remote AI API Server
 """
 import httpx
 from typing import Dict, List, Any, Optional
 import os
+import json
+from app.config import settings
 
 
 class AIAPIClient:
     """
     HTTP Client for external AI API.
-    Replaces local AI module with API calls to DASA server.
+    Uses simple /chat endpoint for all AI operations.
     """
     
     def __init__(self):
-        self.base_url = os.environ.get("AI_API_URL", "http://localhost:8100/api/v1")
-        self.api_key = os.environ.get("AI_API_KEY", "")
-        self.timeout = float(os.environ.get("AI_API_TIMEOUT", "60"))
+        self.base_url = settings.AI_API_URL
+        self.api_key = settings.AI_API_KEY
+        self.timeout = settings.AI_API_TIMEOUT
         
-        headers = {}
+        headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["X-API-Key"] = self.api_key
         
@@ -37,9 +39,12 @@ class AIAPIClient:
     async def health_check(self) -> Dict[str, Any]:
         """Check if AI API is available"""
         try:
-            response = await self.client.get("/health")
+            response = await self.client.get("/")
             response.raise_for_status()
-            return response.json()
+            return {
+                "status": "available",
+                "details": response.json()
+            }
         except Exception as e:
             return {
                 "status": "unavailable",
@@ -53,18 +58,101 @@ class AIAPIClient:
         temperature: float = 0.7,
         system_prompt: Optional[str] = None
     ) -> str:
-        """Generate text response"""
+        """Generate text response using /chat endpoint"""
         try:
-            response = await self.client.post("/generate", json={
-                "prompt": prompt,
+            message = prompt
+            if system_prompt:
+                message = f"{system_prompt}\n\n{prompt}"
+            
+            print(f"[AI] Sending request to {self.base_url}/chat")
+            response = await self.client.post("/chat", json={
+                "message": message,
                 "max_tokens": max_tokens,
-                "temperature": temperature,
-                "system_prompt": system_prompt
+                "temperature": temperature
+            })
+            print(f"[AI] Response status: {response.status_code}")
+            response.raise_for_status()
+            data = response.json()
+            return data.get("response", data.get("text", ""))
+        except httpx.ConnectError as e:
+            error_msg = f"Не удалось подключиться к AI серверу. Проверьте интернет-соединение."
+            print(f"AI API connection error: {e}")
+            return f"[AI Error: {error_msg}]"
+        except httpx.TimeoutException as e:
+            error_msg = f"Превышено время ожидания ответа от AI сервера. Попробуйте позже."
+            print(f"AI API timeout error: {e}")
+            return f"[AI Error: {error_msg}]"
+        except Exception as e:
+            print(f"AI API generate error: {type(e).__name__}: {e}")
+            return f"[AI Error: {str(e)}]"
+    
+    async def chat_with_file(
+        self,
+        file_content: bytes,
+        file_name: str,
+        message: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.7
+    ) -> str:
+        """Send file with message using /chat/file endpoint"""
+        try:
+            files = {"file": (file_name, file_content)}
+            data = {
+                "message": message,
+                "max_tokens": max_tokens,
+                "temperature": temperature
+            }
+            
+            response = await self.client.post("/chat/file", files=files, data=data)
+            response.raise_for_status()
+            result = response.json()
+            return result.get("response", result.get("text", ""))
+        except Exception as e:
+            print(f"AI API chat with file error: {e}")
+            return f"[AI Error: {str(e)}]"
+    
+    async def chat_with_file_base64(
+        self,
+        file_content_base64: str,
+        file_name: str,
+        message: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.7
+    ) -> str:
+        """Send base64 encoded file with message using /chat/file/base64 endpoint"""
+        try:
+            response = await self.client.post("/chat/file/base64", json={
+                "message": message,
+                "file_content": file_content_base64,
+                "file_name": file_name,
+                "max_tokens": max_tokens,
+                "temperature": temperature
             })
             response.raise_for_status()
-            return response.json().get("text", "")
+            data = response.json()
+            return data.get("response", data.get("text", ""))
         except Exception as e:
-            print(f"AI API generate error: {e}")
+            print(f"AI API chat with base64 file error: {e}")
+            return f"[AI Error: {str(e)}]"
+    
+    async def analyze_text_endpoint(
+        self,
+        text: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.7
+    ) -> str:
+        """Analyze text using /analyze/text endpoint"""
+        try:
+            response = await self.client.post("/analyze/text", json={
+                "message": text,
+                "max_tokens": max_tokens,
+                "temperature": temperature
+            })
+            response.raise_for_status()
+            data = response.json()
+            return data.get("response", data.get("text", ""))
+        except Exception as e:
+            print(f"AI API analyze text error: {e}")
             return f"[AI Error: {str(e)}]"
     
     async def generate_conversation_plan(
@@ -76,17 +164,41 @@ class AIAPIClient:
         concerns: Optional[str],
         knowledge_context: List[Any] = None
     ) -> Dict[str, Any]:
-        """Generate a conversation preparation plan"""
+        """Generate a conversation preparation plan using /chat endpoint"""
         try:
-            response = await self.client.post("/conversation/plan", json={
-                "conversation_type": conversation_type,
-                "situation": situation,
-                "interlocutor": interlocutor,
-                "desired_outcome": desired_outcome,
-                "concerns": concerns
-            })
-            response.raise_for_status()
-            return response.json()
+            prompt = f"""Создай детальный план подготовки к разговору.
+
+Тип разговора: {conversation_type}
+Ситуация: {situation}
+Собеседник: {interlocutor or 'Не указан'}
+Желаемый результат: {desired_outcome}
+Опасения: {concerns or 'Нет'}
+
+Предоставь структурированный план в формате JSON с полями:
+- situation_analysis: анализ ситуации
+- emotional_assessment: оценка эмоционального состояния
+- plan: список шагов для подготовки
+- scenarios: возможные сценарии развития
+- objection_handling: как работать с возражениями
+- psychological_techniques: психологические техники
+- dos_and_donts: что делать и чего избегать"""
+
+            response_text = await self.generate(prompt, max_tokens=2000, temperature=0.7)
+            
+            # Попытка распарсить JSON из ответа
+            try:
+                return json.loads(response_text)
+            except:
+                # Если не JSON, возвращаем структурированный fallback с текстом
+                return {
+                    "situation_analysis": response_text[:200],
+                    "emotional_assessment": "Анализ получен от AI",
+                    "plan": response_text.split('\n')[:5],
+                    "scenarios": [],
+                    "objection_handling": [],
+                    "psychological_techniques": ["Активное слушание", "Эмпатия"],
+                    "dos_and_donts": {"dos": [], "donts": []}
+                }
         except Exception as e:
             print(f"AI API plan error: {e}")
             return self._get_fallback_plan(conversation_type, situation)
@@ -98,15 +210,25 @@ class AIAPIClient:
         history: List[Dict[str, str]],
         user_analysis: Optional[Dict] = None
     ) -> Dict[str, Any]:
-        """Generate AI response in dialogue simulation"""
+        """Generate AI response in dialogue simulation using /chat endpoint"""
         try:
-            response = await self.client.post("/dialogue/respond", json={
-                "personality_type": personality_type,
-                "scenario": scenario,
-                "history": history
-            })
-            response.raise_for_status()
-            return response.json()
+            history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history[-5:]])
+            
+            prompt = f"""Ты симулируешь собеседника с типом личности: {personality_type}
+Сценарий: {scenario}
+
+История диалога:
+{history_text}
+
+Ответь в роли этого персонажа. Дай только ответ персонажа, без пояснений."""
+
+            response_text = await self.generate(prompt, max_tokens=500, temperature=0.8)
+            
+            return {
+                "message": response_text,
+                "suggestions": ["Попробуйте использовать я-высказывания"],
+                "session_complete": False
+            }
         except Exception as e:
             print(f"AI API dialogue error: {e}")
             return self._get_fallback_response(personality_type)
@@ -116,14 +238,34 @@ class AIAPIClient:
         text: str,
         context: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Analyze text for communication patterns"""
+        """Analyze text for communication patterns using /chat endpoint"""
         try:
-            response = await self.client.post("/analyze", json={
-                "text": text,
-                "context": context
-            })
-            response.raise_for_status()
-            return response.json()
+            prompt = f"""Проанализируй следующий текст сообщения на предмет коммуникационных паттернов.
+            
+Текст: {text}
+{f'Контекст: {context}' if context else ''}
+
+Предоставь анализ в формате JSON с полями:
+- sentiment: {{"polarity": float, "subjectivity": float}}
+- patterns: список найденных паттернов
+- message_balance: {{"i_messages": int, "you_messages": int}}
+- issues: список проблем в коммуникации
+- recommendations: список рекомендаций"""
+
+            response_text = await self.generate(prompt, max_tokens=1500, temperature=0.5)
+            
+            # Попытка распарсить JSON
+            try:
+                return json.loads(response_text)
+            except:
+                # Fallback с текстовым анализом
+                return {
+                    "sentiment": {"polarity": 0, "subjectivity": 0.5},
+                    "patterns": {"analysis": response_text[:300]},
+                    "message_balance": {"i_messages": 0, "you_messages": 0},
+                    "issues": [],
+                    "recommendations": [response_text[:200]]
+                }
         except Exception as e:
             print(f"AI API analyze error: {e}")
             return self._get_fallback_analysis()
@@ -133,17 +275,9 @@ class AIAPIClient:
         query: str,
         top_k: int = 5
     ) -> List[Dict[str, Any]]:
-        """Search the knowledge base using RAG"""
-        try:
-            response = await self.client.post("/rag/search", json={
-                "query": query,
-                "top_k": top_k
-            })
-            response.raise_for_status()
-            return response.json().get("results", [])
-        except Exception as e:
-            print(f"AI API RAG search error: {e}")
-            return []
+        """Search the knowledge base - not available in simple chat API"""
+        print(f"RAG search not available in simple chat API")
+        return []
     
     async def generate_recommendations(
         self,
